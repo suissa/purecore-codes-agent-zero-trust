@@ -7,6 +7,39 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [Release] v1.4.0 - 2024-12-22
+
+### What's Changed
+
+* **🐰 Secure Agents + RabbitMQ**
+  - Comunicação distribuída ultra-segura via RabbitMQ
+  - Agentes podem estar em processos/máquinas diferentes
+  - Key exchange automático via filas RabbitMQ
+  - Suporte a TLS para conexão com broker
+  - Mantém todas as camadas de segurança (E2EE + JWT)
+
+* **Novos Arquivos**
+  - `examples/secure-agents-rabbitmq.ts` - Implementação com RabbitMQ
+  - `examples/SECURE_AGENTS_RABBITMQ.md` - Documentação completa
+
+### Arquitetura
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                    RabbitMQ (TLS)                        │
+│  ┌────────────────┐         ┌────────────────┐           │
+│  │ agent-alice    │         │ agent-bob      │           │
+│  └────────────────┘         └────────────────┘           │
+└──────────────────────────────────────────────────────────┘
+         │                            │
+    ┌────▼────┐                  ┌────▼────┐
+    │ Alice   │◀────── E2EE ────▶│ Bob     │
+    │ (Proc A)│                  │ (Proc B)│
+    └─────────┘                  └─────────┘
+```
+
+---
+
 ## [Release] v1.3.0 - 2024-12-22
 
 ### What's Changed
@@ -105,7 +138,8 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## Links
 
-- [Documentação Secure Agents (E2EE + mTLS)](./examples/SECURE_AGENTS.md) ⭐ **Recomendado**
-- [Documentação Signal E2EE](./examples/SIGNAL_E2EE.md)
-- [Documentação mTLS](./examples/MTLS_AGENTS.md)
-- [Documentação Self-Healing](./examples/SELF_HEALING_AGENTS.md)
+- [Secure Agents + RabbitMQ](./examples/SECURE_AGENTS_RABBITMQ.md) 🐰 **Distribuído**
+- [Secure Agents (E2EE + mTLS)](./examples/SECURE_AGENTS.md) ⭐ **Recomendado**
+- [Signal E2EE](./examples/SIGNAL_E2EE.md)
+- [mTLS](./examples/MTLS_AGENTS.md)
+- [Self-Healing](./examples/SELF_HEALING_AGENTS.md)
