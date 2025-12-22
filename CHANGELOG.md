@@ -7,6 +7,29 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [Release] v1.3.0 - 2024-12-22
+
+### What's Changed
+
+* **🔐 Secure Agents - Comunicação Ultra-Segura**
+  - Nova API simplificada combinando E2EE + mTLS + JWT
+  - Apenas 10 linhas para máxima segurança
+  - 3 camadas de proteção em defesa em profundidade
+  - SecurityAuthority para gerenciamento centralizado
+  - SecureAgent com API intuitiva (.connect, .send)
+
+* **Novos Arquivos**
+  - `examples/secure-agents.ts` - Implementação unificada
+  - `examples/SECURE_AGENTS.md` - Documentação completa
+
+### Melhorias
+
+* API mais simples mantendo segurança máxima
+* Conexão automática estabelece todas as camadas
+* Eventos para recebimento de mensagens
+
+---
+
 ## [Release] v1.2.0 - 2024-12-22
 
 ### What's Changed
@@ -82,6 +105,7 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## Links
 
+- [Documentação Secure Agents (E2EE + mTLS)](./examples/SECURE_AGENTS.md) ⭐ **Recomendado**
 - [Documentação Signal E2EE](./examples/SIGNAL_E2EE.md)
 - [Documentação mTLS](./examples/MTLS_AGENTS.md)
 - [Documentação Self-Healing](./examples/SELF_HEALING_AGENTS.md)

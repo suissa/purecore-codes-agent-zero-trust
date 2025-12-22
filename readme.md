@@ -359,6 +359,40 @@ import type {
 
 ## 🔄 Exemplos Avançados
 
+### ⭐ Secure Agents - Comunicação Ultra-Segura (Recomendado)
+
+**API simples, segurança máxima.** Combina 3 camadas de proteção em apenas 10 linhas:
+
+```typescript
+import { SecureAgent, SecurityAuthority } from './examples/secure-agents';
+
+// 1. Criar autoridade central
+const authority = new SecurityAuthority();
+
+// 2. Criar agentes
+const alice = new SecureAgent({ agentId: 'alice' }, authority);
+const bob = new SecureAgent({ agentId: 'bob' }, authority);
+
+// 3. Conectar (estabelece mTLS + E2EE automaticamente)
+await alice.connect(bob);
+
+// 4. Enviar mensagens ultra-seguras
+await alice.send('Hello, ultra-secure world!');
+await bob.send('Message received with 3 security layers!');
+```
+
+**3 Camadas de Proteção:**
+
+| Camada | Tecnologia | Proteção |
+|--------|------------|----------|
+| **Transporte** | mTLS | Canal seguro, anti-MITM |
+| **Conteúdo** | Signal E2EE | PFS, PCS, chaves únicas por mensagem |
+| **Contexto** | JWT (EdDSA) | Autorização, expiração, claims |
+
+📖 **Documentação**: [examples/SECURE_AGENTS.md](examples/SECURE_AGENTS.md)
+
+---
+
 ### 1. Self-Healing Agentic Conversational System
 
 Sistema onde dois agentes se identificam usando JWTs do mesmo servidor e regeneram automaticamente seus tokens quando expiram, mantendo a conversa contínua sem interrupção.
