@@ -1,5 +1,5 @@
 {
-  "name": "purecore-one-jwt-4-all",
+  "name": "@purecore/one-jwt-4-all",
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
@@ -11,8 +11,8 @@
     "build": "bun build src/index.ts --outdir dist --target node"
   },
   "keywords": [],
-  "author": "purecore",
-  "license": "ISC",
+  "author": "suissAI",
+  "license": "CEL",
   "description": "One JWT FTW is a library for validating and verifying JSON Web Tokens (JWT) using always the newest and more secure native cryptographic algorithm.",
   "engines": {
     "node": ">=18.0.0"
