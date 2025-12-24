@@ -30,7 +30,7 @@ export const HttpContentType = (() => {
     
     un: (v: HttpContentType): string => f.un(v),
     
-    make: (value: string): HttpContentType => f.of(value),
+    make: (value: string): HttpContentType => HttpContentType.of(value),
     
     // Utilitários para parsing
     getMainType: (v: HttpContentType): string => {

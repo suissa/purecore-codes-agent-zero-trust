@@ -41,7 +41,7 @@ export const HttpStatusCode = (() => {
     
     un: (v: HttpStatusCode): number => f.un(v),
     
-    make: (value: number): HttpStatusCode => f.of(value),
+    make: (value: number): HttpStatusCode => HttpStatusCode.of(value),
     
     // Utilitários para categorias de status
     isInformational: (v: HttpStatusCode): boolean => {

@@ -38,7 +38,7 @@ export const ServerUrl = (() => {
     
     un: (v: ServerUrl): string => f.un(v),
     
-    make: (value: string): ServerUrl => f.of(value),
+    make: (value: string): ServerUrl => ServerUrl.of(value),
     
     // Utilitários específicos para URLs de servidor
     getHost: (v: ServerUrl): string => new URL(f.un(v)).hostname,

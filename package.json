@@ -1,6 +1,6 @@
 {
-  "name": "@purecore/one-jwt-4-all",
-  "version": "1.0.0",
+  "name": "@purecore/agentic-channelfortress",
+  "version": "0.2.0",
   "main": "index.js",
   "dependencies": {
     "@types/node": "^25.0.3",

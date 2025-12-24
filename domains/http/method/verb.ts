@@ -29,7 +29,7 @@ export const HttpMethod = (() => {
     
     un: (v: HttpMethod): string => f.un(v),
     
-    make: (value: string): HttpMethod => f.of(value),
+    make: (value: string): HttpMethod => HttpMethod.of(value),
     
     // Utilitários para categorias de métodos
     isSafe: (v: HttpMethod): boolean => {

@@ -38,7 +38,7 @@ export const BearerToken = (() => {
     
     un: (v: BearerToken): string => f.un(v),
     
-    make: (value: string): BearerToken => f.of(value),
+    make: (value: string): BearerToken => BearerToken.of(value),
     
     // Utilitários para headers de autorização
     toAuthHeader: (v: BearerToken): string => `Bearer ${f.un(v)}`,
