@@ -8,7 +8,10 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "bun build src/index.ts --outdir dist --target node"
+    "build": "bun build src/index.ts --outdir dist --target node",
+    "example:a2a": "bun build examples/a2a-ultra-secure.ts --outdir dist/examples --target node && bun run dist/examples/a2a-ultra-secure.js",
+    "example:mtls": "bun build examples/mtls-agents.ts --outdir dist/examples --target node && bun run dist/examples/mtls-agents.js",
+    "example:secure": "bun build examples/secure-agents.ts --outdir dist/examples --target node && bun run dist/examples/secure-agents.js"
   },
   "keywords": [],
   "author": "suissAI",
