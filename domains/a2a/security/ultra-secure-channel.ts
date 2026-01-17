@@ -5,6 +5,20 @@ import { AgentCard } from "../core/agent-card";
 import { SignJWT, jwtVerify } from "../../../src/index";
 import * as crypto from 'crypto';
 import * as tls from 'tls';
+import {
+  DPoPKeyPair,
+  DPoPProof,
+  DPoPServer,
+  DPoPHttpMethod,
+  generateDPoPKeyPair,
+  createDPoPProof,
+  verifyDPoPProof,
+  createDPoPAuthHeader,
+  parseDPoPAuthHeader,
+  computeAccessTokenHash,
+  DPoPAlgorithm,
+} from "../../auth/dpop";
+import { DPoPAuthToken, DPoPAuthTokenData } from "../../auth/token/bearer";
 
 /**
  * Canal Ultra-Seguro A2A
@@ -20,11 +34,20 @@ export class UltraSecureA2AChannel implements A2AOperations {
   private tasks: Map<string, Task> = new Map();
   private agentCard: AgentCard;
   
+  private dpopKeyPair: DPoPKeyPair;
+  private dpopToken: DPoPAuthTokenData | null = null;
+  private dpopServer: DPoPServer;
+  private dpopAlgorithm: DPoPAlgorithm;
+  
   constructor(
     private agentId: string,
     private certificate: { cert: string; key: string },
     private caCert: string,
-    keyPair?: { privateKey: crypto.KeyObject; publicKey: crypto.KeyObject }
+    keyPair?: { privateKey: crypto.KeyObject; publicKey: crypto.KeyObject },
+    options?: {
+      dpopAlgorithm?: DPoPAlgorithm;
+      nonceTtlSeconds?: number;
+    }
   ) {
     if (keyPair) {
       this.privateKey = keyPair.privateKey;
@@ -35,10 +58,14 @@ export class UltraSecureA2AChannel implements A2AOperations {
       this.publicKey = generated.publicKey;
     }
     
+    this.dpopAlgorithm = options?.dpopAlgorithm || 'ES256';
+    this.dpopKeyPair = generateDPoPKeyPair(this.dpopAlgorithm);
+    this.dpopServer = new DPoPServer({ nonceTtlSeconds: options?.nonceTtlSeconds });
+    
     this.agentCard = AgentCard.make({
       agentId: this.agentId,
       name: `Ultra-Secure Agent ${this.agentId}`,
-      description: 'Agent with ultra-secure A2A communication capabilities',
+      description: 'Agent with ultra-secure A2A communication with DPoP',
       protocolVersion: '1.0',
       endpoint: `https://${this.agentId}.a2a.local`,
       capabilities: {
@@ -55,66 +82,130 @@ export class UltraSecureA2AChannel implements A2AOperations {
         ]
       },
       authentication: {
-        type: 'mtls',
+        type: 'dpop',
         config: {
-          requireClientCert: true,
-          jwtSigning: 'EdDSA'
+          algorithms: ['ES256', 'ES384', 'ES512', 'EdDSA'],
+          requireAth: true,
+          nonceSupported: true
         }
       }
     });
   }
 
-  /**
-   * Registra chave pública de um peer para comunicação E2EE
-   */
-  registerPeerPublicKey(peerId: string, publicKey: crypto.KeyObject): void {
-    this.peerPublicKeys.set(peerId, publicKey);
+  setDPoPToken(token: string, expiresInMs: number = 3600000): void {
+    const createdAt = Date.now();
+    const expiresAt = createdAt + expiresInMs;
+    
+    this.dpopToken = {
+      accessToken: token,
+      dpopKeyPair: this.dpopKeyPair,
+      createdAt,
+      expiresAt,
+    };
+  }
+
+  private async getDPoPProof(
+    method: DPoPHttpMethod,
+    url: string,
+    options?: { nonce?: string }
+  ): Promise<DPoPProof> {
+    if (!this.dpopToken) {
+      throw new Error('DPoP token not set. Call setDPoPToken() first.');
+    }
+
+    return await createDPoPProof(this.dpopKeyPair, {
+      method,
+      url,
+      accessToken: this.dpopToken.accessToken,
+      nonce: options?.nonce,
+    });
+  }
+
+  private async createDPoPAuthHeader(
+    method: DPoPHttpMethod,
+    url: string,
+    options?: { nonce?: string }
+  ): Promise<string> {
+    if (!this.dpopToken) {
+      throw new Error('DPoP token not set. Call setDPoPToken() first.');
+    }
+
+    const proof = await this.getDPoPProof(method, url, options);
+    return createDPoPAuthHeader(this.dpopToken.accessToken, proof.jwt);
   }
 
   /**
-   * Criptografa dados usando chave pública do destinatário
+   * Registra chave pública X25519 de um peer para comunicação E2EE
+   */
+  registerPeerX25519Key(peerId: string, x25519PublicKey: crypto.KeyObject): void {
+    this.peerPublicKeys.set(peerId, x25519PublicKey);
+  }
+
+  /**
+   * Gera par de chaves X25519 para E2EE
+   */
+  static generateX25519KeyPair(): { privateKey: crypto.KeyObject; publicKey: crypto.KeyObject } {
+    return crypto.generateKeyPairSync('x25519');
+  }
+
+  /**
+   * Criptografa dados usando chave pública X25519 do destinatário
    */
   private encryptForPeer(peerId: string, data: string): string {
     const peerPublicKey = this.peerPublicKeys.get(peerId);
     if (!peerPublicKey) {
-      throw new Error(`No public key found for peer: ${peerId}`);
+      throw new Error(`No X25519 public key found for peer: ${peerId}`);
     }
 
-    // Gerar chave simétrica temporária
-    const symmetricKey = crypto.randomBytes(32);
+    const ephemeralKeyPair = crypto.generateKeyPairSync('x25519');
+    const ephemeralPrivateKey = ephemeralKeyPair.privateKey;
+    const ephemeralPublicKey = ephemeralKeyPair.publicKey;
+
+    const sharedSecret = crypto.diffieHellman({
+      privateKey: ephemeralPrivateKey,
+      publicKey: peerPublicKey,
+    });
+
+    const symmetricKey = crypto.createHash('sha256')
+      .update(sharedSecret)
+      .digest();
+
     const iv = crypto.randomBytes(16);
     
-    // Criptografar dados com chave simétrica
     const cipher = crypto.createCipheriv('aes-256-gcm', symmetricKey, iv);
     cipher.setAAD(Buffer.from(peerId, 'utf8'));
     let encrypted = cipher.update(data, 'utf8', 'hex');
     encrypted += cipher.final('hex');
     const authTag = cipher.getAuthTag();
     
-    // Criptografar chave simétrica com chave pública do peer
-    // Nota: Ed25519 não suporta encryption, usando ECDH para key agreement
-    // Em implementação real, usaria X25519 para key agreement
-    const encryptedKey = crypto.publicEncrypt(peerPublicKey, symmetricKey);
-    
+    const ephemeralPublicKeyPem = ephemeralPublicKey.export({ type: 'spki', format: 'pem' });
+
     return JSON.stringify({
       encryptedData: encrypted,
-      encryptedKey: encryptedKey.toString('base64'),
+      encryptedKey: ephemeralPublicKeyPem,
       iv: iv.toString('base64'),
       authTag: authTag.toString('base64')
     });
   }
 
   /**
-   * Descriptografa dados usando chave privada
+   * Descriptografa dados usando chave privada X25519
    */
   private decryptFromPeer(encryptedPayload: string): string {
     const payload = JSON.parse(encryptedPayload);
     
-    // Descriptografar chave simétrica
-    const encryptedKey = Buffer.from(payload.encryptedKey, 'base64');
-    const symmetricKey = crypto.privateDecrypt(this.privateKey, encryptedKey);
+    const ephemeralPublicKeyPem = payload.encryptedKey;
+    const ephemeralPublicKey = crypto.createPublicKey(ephemeralPublicKeyPem);
     
-    // Descriptografar dados
+    const sharedSecret = crypto.diffieHellman({
+      privateKey: this.privateKey,
+      publicKey: ephemeralPublicKey,
+    });
+
+    const symmetricKey = crypto.createHash('sha256')
+      .update(sharedSecret)
+      .digest();
+    
     const decipher = crypto.createDecipheriv('aes-256-gcm', symmetricKey, Buffer.from(payload.iv, 'base64'));
     const authTag = Buffer.from(payload.authTag, 'base64');
     
@@ -423,18 +514,62 @@ export class UltraSecureA2AChannel implements A2AOperations {
   }
 
   /**
-   * Envia mensagem ultra-segura para um peer
+   * Envia mensagem ultra-segura para um peer com DPoP
    */
-  async sendSecureMessage(peerId: string, content: string, socket: tls.TLSSocket): Promise<void> {
-    const authToken = await this.createAuthToken(peerId);
-    
-    const message = {
-      token: authToken,
-      payload: content,
-      encrypted: false // Pode ser habilitado para E2EE adicional
+  async sendSecureMessage(
+    peerId: string,
+    content: string,
+    socket: tls.TLSSocket,
+    options?: {
+      encrypt?: boolean;
+      useDPoP?: boolean;
+      method?: DPoPHttpMethod;
+      url?: string;
+    }
+  ): Promise<void> {
+    const useDPoP = options?.useDPoP ?? false;
+    let payload = content;
+
+    if (options?.encrypt) {
+      payload = this.encryptForPeer(peerId, content);
+    }
+
+    const message: any = {
+      payload,
+      encrypted: options?.encrypt ?? false,
     };
-    
+
+    if (useDPoP && this.dpopToken) {
+      const method = options?.method || 'POST';
+      const url = options?.url || `https://${peerId}.a2a.local/message`;
+      const authHeader = await this.createDPoPAuthHeader(method, url);
+      message.dpop = authHeader;
+    } else {
+      const authToken = await this.createAuthToken(peerId);
+      message.token = authToken;
+    }
+
     socket.write(JSON.stringify(message));
     console.log(`📤 [${this.agentId}] → [${peerId}] (Ultra-Secure): ${content}`);
+  }
+
+  /**
+   * Verifica DPoP proof de uma mensagem recebida
+   */
+  async verifyIncomingDPoP(authHeader: string, method: string, url: string): Promise<boolean> {
+    const result = await this.dpopServer.verifyDPoPAuthHeader(authHeader, {
+      requiredMethod: method as DPoPHttpMethod,
+      requiredUrl: url,
+      audience: this.agentId,
+    });
+
+    return result.valid;
+  }
+
+  /**
+   * Gera nonce para DPoP
+   */
+  async generateNonce(clientId: string): Promise<string> {
+    return await this.dpopServer.issueNonce(clientId);
   }
 }

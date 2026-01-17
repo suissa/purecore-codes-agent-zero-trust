@@ -11,7 +11,9 @@
     "build": "bun build src/index.ts --outdir dist --target node",
     "example:a2a": "bun build examples/a2a-ultra-secure.ts --outdir dist/examples --target node && bun run dist/examples/a2a-ultra-secure.js",
     "example:mtls": "bun build examples/mtls-agents.ts --outdir dist/examples --target node && bun run dist/examples/mtls-agents.js",
-    "example:secure": "bun build examples/secure-agents.ts --outdir dist/examples --target node && bun run dist/examples/secure-agents.js"
+    "example:secure": "bun build examples/secure-agents.ts --outdir dist/examples --target node && bun run dist/examples/secure-agents.js",
+    "example:dpop": "bun build examples/dpop-example.ts --outdir dist/examples --target node && bun run dist/examples/dpop-example.js",
+    "example:rabbitmq": "bun build examples/secure-agents-rabbitmq.ts --outdir dist/examples --target node && bun run dist/examples/secure-agents-rabbitmq.js"
   },
   "keywords": [],
   "author": "suissAI",

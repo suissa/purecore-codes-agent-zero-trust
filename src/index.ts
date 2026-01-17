@@ -77,8 +77,10 @@ function base64UrlEncode(input: Uint8Array | string | object): string {
     buffer = Buffer.from(JSON.stringify(input), 'utf-8');
   }
   
-  return buffer.toString('base64url'); // Node.js moderno suporta 'base64url' nativamente
+  return buffer.toString('base64url');
 }
+
+export { base64UrlEncode };
 
 function base64UrlDecode(str: string): string {
   return Buffer.from(str, 'base64url').toString('utf-8');
@@ -132,26 +134,23 @@ export class SignJWT {
 
   setExpirationTime(input: number | string): this {
     const now = this._payload.iat ?? Math.floor(Date.now() / 1000);
-    const offset = typeof input === 'number' ? input - now : parseTime(input); 
-    // Nota: 'jose' geralmente trata string como duração relativa (ex: "2h" a partir de agora/iat)
-    // Se o input for string, somamos ao 'iat' ou 'now'. 
-    // Se for number, assume-se timestamp absoluto na maioria das libs, mas 'jose' string é duração.
-    // Aqui simplifico: string = duração, number = timestamp absoluto.
     
     if (typeof input === 'string') {
-        this._payload.exp = now + parseTime(input);
+      this._payload.exp = now + parseTime(input);
     } else {
+      if (input > 10000000000) {
         this._payload.exp = input;
+      } else {
+        this._payload.exp = now + input;
+      }
     }
     
     return this;
   }
 
   async sign(privateKey: crypto.KeyObject | string): Promise<string> {
-    if (this._protectedHeader.alg !== 'EdDSA') {
-      throw new Error('Apenas o algoritmo EdDSA é suportado por esta implementação.');
-    }
-
+    const keyObj = (typeof privateKey === 'string') ? crypto.createPrivateKey(privateKey) : privateKey;
+    
     const encodedHeader = base64UrlEncode(this._protectedHeader);
     const encodedPayload = base64UrlEncode(this._payload);
     const data = `${encodedHeader}.${encodedPayload}`;
@@ -159,7 +158,7 @@ export class SignJWT {
     const signature = crypto.sign(
       null,
       Buffer.from(data),
-      (typeof privateKey === 'string') ? crypto.createPrivateKey(privateKey) : privateKey
+      keyObj
     );
 
     const encodedSignature = base64UrlEncode(signature);
