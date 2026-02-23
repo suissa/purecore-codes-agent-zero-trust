@@ -7,6 +7,31 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [Release] v1.6.0 - 2026-02-23
+
+### What's Changed
+
+* **📚 Unificação da documentação de funcionalidades**
+  - Reconstrução completa do `readme.md` principal
+  - Inclusão de todas as novas funcionalidades de segurança de agentes
+  - Adição de seções de conceito, problema, quando usar e exemplos
+  - Inclusão de post de blog técnico sobre a arquitetura
+
+* **Novas Funcionalidades Documentadas**
+  - 🔑 **DPoP (RFC 9449)**: Sender-constraining para access tokens
+  - 🏦 **FAPI 2.0**: Padrões financeiros ultra-seguros (PAR, PKCE)
+  - 👥 **Multi-Party E2EE**: Encriptação de grupo para múltiplos agentes
+  - 🏷️ **Semantic Types**: Tipagem nominal para segurança em tempo de execução
+  - 🛡️ **Resilient Tokens**: Gerenciador de tokens auto-recuperável com promise latching
+  - ✅ **Rigorous Validations**: Validações de domínio fast-fail para HTTP e Auth
+
+* **Melhorias de Documentação**
+  - Melhor organização visual e navegabilidade
+  - Explicações conceituais profundas (Deep Dives)
+  - Exemplos de código atualizados e testados
+
+---
+
 ## [Release] v1.5.0 - 2025-12-24
 
 ### What's Changed

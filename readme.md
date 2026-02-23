@@ -1,541 +1,153 @@
-# 🔐 Purecore JWTfy
+# 🔐 Purecore JWTfy (Agentic NetworkFortress)
 
-<img src="https://i.imgur.com/39I2vIJ.png" align="center" />
+<img src="https://i.imgur.com/39I2vIJ.png" align="center" alt="Purecore JWTfy Banner" />
 
-> **A Biblioteca one-jwt-4-all com Zero Dependências**
+> **The state-of-the-art security layer for Agentic Communication.**
+> Zero dependencies. Strong opinions. Radical security.
 
-Uma biblioteca moderna e opinativa para criação e validação de JSON Web Tokens (JWT) usando exclusivamente algoritmos state-of-the-art. API compatível com `jose`, mas com uma filosofia radicalmente diferente: **Opinião Forte**.
+---
 
-## 🎯 Filosofia "One JWT 4 ALL"
+## 🏗️ Technical Blog Post: The "Fortress" Architecture
 
-Enquanto outras bibliotecas suportam centenas de combinações de algoritmos (muitos deles inseguros ou obsoletos), nós suportamos **apenas uma combinação para cada caso de uso**. Essa combinação é escolhida com base no que há de mais seguro e performático na versão LTS mais recente do Node.js.
+### How it was made
+Purecore JWTfy wasn't built as another generic JWT library. It was born from the need for **deterministic security** in autonomous agent networks. We looked at the current landscape—bloated with legacy support for insecure algorithms like RS256 or HS256—and decided to build a "Fortress". Using only Ed25519 (EdDSA) and modern primitives like DPoP and Signal's Double Ratchet, we created a tool that makes the *wrong way* impossible.
 
-### Por que EdDSA (Ed25519)?
+### How it works
+The architecture follows the **Defense in Depth** principle. It's not just about a token; it's about the context.
+1. **Semantic Layer**: Every string (URL, Method, Token) is strictly typed at the boundary.
+2. **Identity Layer**: Ed25519 provides fast, secure signatures with tiny keys.
+3. **Transmission Layer**: DPoP (Demonstrating Proof-of-Possession) binds tokens to the sender's private key, making stolen tokens useless.
+4. **Resiliency Layer**: Self-healing managers recover from expired tokens without interrupting agent tasks.
 
-- ⚡ **Mais rápido** que ECDSA e RSA
-- 🔑 **Chaves menores** que RSA (256 bits vs 2048+ bits)
-- 🛡️ **Imune a ataques** de timing e side-channels comuns
-- 📦 **Suporte nativo** no Node.js 18+ (sem dependências externas)
-- ✅ **Padrão moderno** recomendado por criptógrafos
+### How to test
+Every module comes with a semantic manifest and a suite of "fail-fast" tests. You can run the examples in the `examples/` directory to see the "Self-Healing" and "E2EE" protocols in action.
+```bash
+bun examples/secure-agents.ts
+bun examples/self-healing-agents.ts
+```
 
-> **"A complexidade é a inimiga da segurança."**
+---
 
-## 📊 Comparativo: jose vs Purecore JWTfy
-
-| Funcionalidade | Biblioteca jose (Genérica) | Purecore JWTfy (Opinativa) |
-|----------------|---------------------------|---------------------------|
-| **Filosofia** | Suportar tudo (Legado & Novo) | Suportar apenas o Melhor (State-of-the-Art) |
-| **JWS Signing Algs** | HS256, RS256, ES256, PS256, EdDSA... | **EdDSA (Ed25519) Apenas** |
-| **JWE Encryption** | RSA-OAEP, A128CBC-HS256, A256GCM... | **X25519 + A256GCM** (Roadmap) |
-| **JWS Serialization** | Compact, Flattened, General | Compact (Core) |
-| **Key Management** | JWK, JWKS (Local/Remote), PEM, X.509 | PEM & JWK (Simples) |
-| **Runtime** | Universal (Browser, Node, Deno, Workers) | **Node.js Nativo** (Foco em Performance) |
-| **Dependências** | Múltiplas | **Zero (0)** |
-
-## 🚀 Instalação
+## 🚀 Quick Start
 
 ```bash
-# Com npm
-npm install @purecore/one-jwt-4-all
-
-# Com bun
 bun add @purecore/one-jwt-4-all
-
-# Com yarn
-yarn add @purecore/one-jwt-4-all
 ```
 
-## 📖 Uso Básico
-
-### 1. Gerar Par de Chaves
-
 ```typescript
-import { generateKeyPair } from '@purecore/one-jwt-4-all';
+import { SignJWT, jwtVerify, generateKeyPair } from '@purecore/one-jwt-4-all';
 
 const { publicKey, privateKey } = generateKeyPair();
 
-// Salve as chaves de forma segura
-console.log('Chave Privada:', privateKey);
-console.log('Chave Pública:', publicKey);
-```
-
-### 2. Criar um Token JWT
-
-```typescript
-import { SignJWT } from '@purecore/one-jwt-4-all';
-
-// Criar token com builder pattern (estilo jose)
-const jwt = await new SignJWT({
-  userId: 123,
-  email: 'usuario@exemplo.com',
-  role: 'admin'
-})
+// Create Token
+const token = await new SignJWT({ agentId: 'alpha' })
   .setProtectedHeader({ alg: 'EdDSA', typ: 'JWT' })
-  .setIssuedAt()
-  .setIssuer('urn:meu-sistema:issuer')
-  .setAudience('urn:meu-sistema:audience')
-  .setExpirationTime('2h') // Expira em 2 horas
-  .setSubject('usuario-123')
-  .setJti('token-unique-id')
+  .setExpirationTime('2h')
   .sign(privateKey);
 
-console.log('Token gerado:', jwt);
+// Verify Token
+const { payload } = await jwtVerify(token, publicKey);
 ```
 
-### 3. Verificar um Token JWT
+---
 
+## 💎 Features Registry (Examples)
+
+This library is a complete toolkit for secure agentic systems. Below are the core functionalities available in the `examples/` directory.
+
+### 1. ⭐ Secure Agents (A2A Protocol)
+**Concept**: A unified API that combines mTLS, Signal E2EE, and JWT in a single "Defense in Depth" stack.
+- **Problem**: Communication between agents is usually either only TLS (vulnerable to MITM at the broker level) or only JWT (no forward secrecy).
+- **When to use**: Any production system requiring the highest level of security between autonomous entities.
+- **Example**: `examples/secure-agents.ts`
 ```typescript
-import { jwtVerify } from '@purecore/one-jwt-4-all';
-
-try {
-  const { payload, protectedHeader } = await jwtVerify(jwt, publicKey, {
-    issuer: 'urn:meu-sistema:issuer',
-    audience: 'urn:meu-sistema:audience',
-    maxTokenAge: '2h' // Opcional: idade máxima do token
-  });
-
-  console.log('Token válido!');
-  console.log('Payload:', payload);
-  console.log('Header:', protectedHeader);
-} catch (error) {
-  console.error('Token inválido:', error.message);
-}
-```
-
-## 🔧 API Completa
-
-### SignJWT (Builder Pattern)
-
-#### Métodos Disponíveis
-
-```typescript
-new SignJWT(payload: JWTPayload)
-  .setProtectedHeader(header: JWTHeaderParameters)  // Define o header protegido
-  .setIssuer(issuer: string)                        // Define o emissor (iss)
-  .setSubject(subject: string)                      // Define o assunto (sub)
-  .setAudience(audience: string | string[])        // Define a audiência (aud)
-  .setJti(jwtId: string)                           // Define o ID único do token (jti)
-  .setIssuedAt(timestamp?: number)                 // Define quando foi emitido (iat)
-  .setExpirationTime(time: number | string)        // Define expiração (exp)
-  .setNotBefore(time: number | string)              // Define quando fica válido (nbf)
-  .sign(privateKey: KeyObject | string)             // Assina e retorna o token
-```
-
-#### Formatos de Tempo Suportados
-
-```typescript
-// Strings de duração relativa
-.setExpirationTime('30s')  // 30 segundos
-.setExpirationTime('5m')   // 5 minutos
-.setExpirationTime('2h')   // 2 horas
-.setExpirationTime('1d')   // 1 dia
-.setExpirationTime('1w')   // 1 semana
-.setExpirationTime('1y')   // 1 ano
-
-// Timestamp absoluto (Unix timestamp em segundos)
-.setExpirationTime(1735689600)
-```
-
-### jwtVerify (Função)
-
-```typescript
-jwtVerify(
-  jwt: string,
-  publicKey: KeyObject | string,
-  options?: JWTVerifyOptions
-): Promise<JWTVerifyResult>
-```
-
-#### Opções de Verificação
-
-```typescript
-interface JWTVerifyOptions {
-  issuer?: string | string[];        // Valida o emissor (iss)
-  audience?: string | string[];      // Valida a audiência (aud)
-  algorithms?: string[];             // Lista de algoritmos permitidos (ignorado, sempre EdDSA)
-  currentDate?: Date;                // Data atual para testes (mock)
-  maxTokenAge?: string | number;     // Idade máxima do token ('2h' ou segundos)
-}
-```
-
-## 📝 Exemplos Práticos
-
-### Exemplo 1: Autenticação de Usuário
-
-```typescript
-import { SignJWT, jwtVerify, generateKeyPair } from '@purecore/one-jwt-4-all';
-
-// Gere as chaves uma vez e guarde em variáveis de ambiente
-const { publicKey, privateKey } = generateKeyPair();
-
-// Login: Criar token após autenticação bem-sucedida
-async function login(userId: string, email: string) {
-  const token = await new SignJWT({
-    userId,
-    email,
-    loginTime: Date.now()
-  })
-    .setIssuedAt()
-    .setIssuer('https://meuapp.com')
-    .setAudience('https://meuapp.com/api')
-    .setSubject(userId)
-    .setExpirationTime('24h')
-    .sign(privateKey);
-
-  return token;
-}
-
-// Middleware: Verificar token em requisições
-async function verifyToken(token: string) {
-  try {
-    const { payload } = await jwtVerify(token, publicKey, {
-      issuer: 'https://meuapp.com',
-      audience: 'https://meuapp.com/api',
-      maxTokenAge: '24h'
-    });
-    
-    return payload;
-  } catch (error) {
-    throw new Error(`Token inválido: ${error.message}`);
-  }
-}
-```
-
-### Exemplo 2: Refresh Tokens
-
-```typescript
-// Access Token (curta duração)
-const accessToken = await new SignJWT({ userId: 123 })
-  .setIssuedAt()
-  .setExpirationTime('15m') // 15 minutos
-  .setIssuer('https://meuapp.com')
-  .setAudience('https://meuapp.com/api')
-  .sign(privateKey);
-
-// Refresh Token (longa duração)
-const refreshToken = await new SignJWT({ userId: 123 })
-  .setIssuedAt()
-  .setExpirationTime('7d') // 7 dias
-  .setIssuer('https://meuapp.com')
-  .setAudience('https://meuapp.com/auth/refresh')
-  .sign(privateKey);
-```
-
-### Exemplo 3: Tokens com Not Before
-
-```typescript
-// Token que só fica válido após 5 minutos
-const token = await new SignJWT({ userId: 123 })
-  .setIssuedAt()
-  .setNotBefore('5m') // Válido apenas após 5 minutos
-  .setExpirationTime('1h')
-  .sign(privateKey);
-```
-
-### Exemplo 4: Integração com Express.js
-
-```typescript
-import express from 'express';
-import { jwtVerify } from '@purecore/one-jwt-4-all';
-import { readFileSync } from 'fs';
-
-const app = express();
-const publicKey = readFileSync('./public-key.pem', 'utf-8');
-
-// Middleware de autenticação
-async function authenticate(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Token não fornecido' });
-  }
-
-  const token = authHeader.substring(7);
-
-  try {
-    const { payload } = await jwtVerify(token, publicKey, {
-      issuer: 'https://meuapp.com',
-      audience: 'https://meuapp.com/api'
-    });
-    
-    req.user = payload;
-    next();
-  } catch (error) {
-    return res.status(401).json({ error: `Token inválido: ${error.message}` });
-  }
-}
-
-// Rota protegida
-app.get('/api/protected', authenticate, (req, res) => {
-  res.json({ 
-    message: 'Acesso autorizado',
-    user: req.user 
-  });
-});
-```
-
-## 🔒 Segurança
-
-### Boas Práticas
-
-1. **Nunca exponha a chave privada**
-   - Guarde em variáveis de ambiente
-   - Use serviços de gerenciamento de segredos em produção
-
-2. **Use expiração curta para access tokens**
-   - Recomendado: 15 minutos a 1 hora
-   - Use refresh tokens para renovação
-
-3. **Valide sempre issuer e audience**
-   - Previne uso de tokens em contextos errados
-   - Protege contra token reuse attacks
-
-4. **Use HTTPS em produção**
-   - Tokens não devem trafegar em conexões não criptografadas
-
-5. **Rotacione chaves periodicamente**
-   - Gere novos pares de chaves regularmente
-   - Mantenha versões antigas para validação durante transição
-
-### Gerenciamento de Chaves
-
-```typescript
-// Gerar par de chaves
-const { publicKey, privateKey } = generateKeyPair();
-
-// Salvar em arquivos (nunca commite no git!)
-import { writeFileSync } from 'fs';
-writeFileSync('./private-key.pem', privateKey, { mode: 0o600 }); // Permissões restritas
-writeFileSync('./public-key.pem', publicKey);
-
-// Carregar de arquivos
-import { readFileSync } from 'fs';
-const privateKey = readFileSync('./private-key.pem', 'utf-8');
-const publicKey = readFileSync('./public-key.pem', 'utf-8');
-```
-
-## 🧪 Testes
-
-```typescript
-import { SignJWT, jwtVerify, generateKeyPair } from '@purecore/one-jwt-4-all';
-
-describe('JWT', () => {
-  const { publicKey, privateKey } = generateKeyPair();
-
-  it('deve criar e verificar token válido', async () => {
-    const jwt = await new SignJWT({ userId: 123 })
-      .setIssuedAt()
-      .setExpirationTime('1h')
-      .sign(privateKey);
-
-    const { payload } = await jwtVerify(jwt, publicKey);
-    
-    expect(payload.userId).toBe(123);
-  });
-
-  it('deve rejeitar token expirado', async () => {
-    const jwt = await new SignJWT({ userId: 123 })
-      .setIssuedAt()
-      .setExpirationTime('-1h') // Expirado
-      .sign(privateKey);
-
-    await expect(jwtVerify(jwt, publicKey)).rejects.toThrow('expirado');
-  });
-});
-```
-
-## 📚 Tipos TypeScript
-
-A biblioteca exporta todos os tipos necessários:
-
-```typescript
-import type {
-  JWTPayload,
-  JWTHeaderParameters,
-  JWTVerifyResult,
-  JWTVerifyOptions
-} from '@purecore/one-jwt-4-all';
-```
-
-## 🔄 Exemplos Avançados
-
-### ⭐ Secure Agents - Comunicação Ultra-Segura (Recomendado)
-
-**API simples, segurança máxima.** Combina 3 camadas de proteção em apenas 10 linhas:
-
-```typescript
-import { SecureAgent, SecurityAuthority } from './examples/secure-agents';
-
-// 1. Criar autoridade central
-const authority = new SecurityAuthority();
-
-// 2. Criar agentes
 const alice = new SecureAgent({ agentId: 'alice' }, authority);
 const bob = new SecureAgent({ agentId: 'bob' }, authority);
-
-// 3. Conectar (estabelece mTLS + E2EE automaticamente)
 await alice.connect(bob);
-
-// 4. Enviar mensagens ultra-seguras
-await alice.send('Hello, ultra-secure world!');
-await bob.send('Message received with 3 security layers!');
+await alice.send('Hello Bob!');
 ```
 
-**3 Camadas de Proteção:**
+### 2. 🐰 Distributed Secure Agents (RabbitMQ)
+**Concept**: Extends the A2A protocol to distributed environments using RabbitMQ as a broker.
+- **Problem**: Securing messages across different machines or processes while maintaining end-to-end encryption.
+- **When to use**: Microservices architectures, IoT, or cloud-scale agent swarms.
+- **Example**: `examples/secure-agents-rabbitmq.ts`
+- 📖 [Full Guide](examples/SECURE_AGENTS_RABBITMQ.md)
 
-| Camada | Tecnologia | Proteção |
-|--------|------------|----------|
-| **Transporte** | mTLS | Canal seguro, anti-MITM |
-| **Conteúdo** | Signal E2EE | PFS, PCS, chaves únicas por mensagem |
-| **Contexto** | JWT (EdDSA) | Autorização, expiração, claims |
+### 3. 🛡️ DPoP (RFC 9449)
+**Concept**: Demonstrating Proof-of-Possession. Binds an access token to a specific cryptographic key pair.
+- **Problem**: "Bearer" tokens can be stolen and used by anyone (replay attacks).
+- **When to use**: Public APIs, high-stakes financial operations, or browser-based agents where tokens might be intercepted.
+- **Example**: `examples/dpop-example.ts`
+```typescript
+const dpopProof = await createDPoPProof(keyPair, { method: 'POST', url: '/resource' });
+// Token is now useless without the private key that generated dpopProof
+```
 
-📖 **Documentação**: [examples/SECURE_AGENTS.md](examples/SECURE_AGENTS.md)
+### 4. 🏦 FAPI 2.0 (Financial-grade API)
+**Concept**: Implementation of the world's most secure API standard, used by Open Banking.
+- **Problem**: Standard OAuth 2.0 is insufficient for high-security environments like banking.
+- **When to use**: Financial systems, medical data access, or government APIs.
+- **Example**: `examples/fapi20-demo-working.ts`
+- **Features**: Pushed Authorization Requests (PAR), PKCE, DPoP binding.
+
+### 5. 🔄 Self-Healing Agents
+**Concept**: Agents that automatically monitor token expiration and refresh themselves without losing conversational context.
+- **Problem**: Tokens expire during long-running agentic tasks (multi-step reasoning), causing failures.
+- **When to use**: Agents performing tasks that take minutes or hours to complete.
+- **Example**: `examples/self-healing-agents.ts`
+- 📖 [Full Guide](examples/SELF_HEALING_AGENTS.md)
+
+### 6. 👥 Multi-Party E2EE (Group Encryption)
+**Concept**: Secure group communication where $N$ agents share a group session with AES-256-GCM.
+- **Problem**: Signal Double Ratchet is 1-to-1. Groups usually require complex key management.
+- **When to use**: Collaborative agent swarms or secure group chats.
+- **Example**: `examples/multiparty-e2ee-agents.ts`
+
+### 7. 🏷️ Semantic Types (Nominal Typing)
+**Concept**: Using TypeScript "Branding" to ensure strings like `ServerUrl` or `HttpStatusCode` are validated at creation and never confused.
+- **Problem**: Values like `200` (status) and `200` (count) are both numbers but have different semantics.
+- **When to use**: To eliminate "stringly-typed" bugs and ensure inputs are always valid.
+- **Example**: `examples/semantic-types-usage.ts`
+```typescript
+const url = ServerUrl.make("https://api.com"); // Validated
+const status = HttpStatusCode.make(200);      // Validated
+```
+
+### 8. 🩹 Resilient Token Manager
+**Concept**: A manager that handles parallel token failures using "Promise Latching" to avoid refreshing multiple times for the same expiration.
+- **Problem**: When 10 parallel requests fail due to an expired token, they might trigger 10 refresh calls.
+- **When to use**: High-concurrency agent environments.
+- **Example**: `examples/resilient-dpop.ts`
 
 ---
 
-### 1. Self-Healing Agentic Conversational System
+## 🔒 Security Layers Checklist
 
-Sistema onde dois agentes se identificam usando JWTs do mesmo servidor e regeneram automaticamente seus tokens quando expiram, mantendo a conversa contínua sem interrupção.
-
-**Características:**
-- ✅ **Auto-Renovação**: Tokens renovados automaticamente antes de expirar
-- ✅ **Contexto Preservado**: Conversa continua mesmo após renovação
-- ✅ **Verificação Mútua**: Agentes verificam identidade uns dos outros
-- ✅ **Self-Healing**: Sistema se recupera automaticamente de falhas
-
-**Exemplo Rápido:**
-```typescript
-import { TokenAuthority, SelfHealingAgent } from './examples/self-healing-agents';
-
-const authority = new TokenAuthority();
-const agentA = new SelfHealingAgent('agent-alpha', 'primary', authority);
-const agentB = new SelfHealingAgent('agent-beta', 'secondary', authority);
-
-await agentA.initialize();
-await agentB.initialize();
-agentA.startAutoRenewal(30000);
-agentB.startAutoRenewal(30000);
-
-await agentA.sendMessage(agentB, 'Olá! Vamos trabalhar juntos?');
-await agentB.sendMessage(agentA, 'Perfeito! Estou pronto.');
-```
-
-📖 **Documentação**: [examples/SELF_HEALING_AGENTS.md](examples/SELF_HEALING_AGENTS.md)
-
-### 2. Self-Healing Agents com mTLS (Mutual TLS)
-
-Extensão do sistema anterior que adiciona **mTLS** para segurança em duas camadas: transporte (certificados) + aplicação (JWT).
-
-**Características:**
-- 🔒 **mTLS**: Autenticação mútua via certificados X.509
-- 🔐 **JWT**: Autenticação de identidade e contexto
-- 🛡️ **Prevenção MITM**: Certificados validam identidade do transporte
-- 🔄 **Self-Healing**: Auto-renovação de tokens mantendo conexão mTLS
-
-**Exemplo Rápido:**
-```typescript
-import { mTLSAgent, CertificateAuthority, TokenAuthority } from './examples/mtls-agents';
-
-const ca = new CertificateAuthority();
-const tokenAuthority = new TokenAuthority();
-
-const certA = ca.generateAgentCertificate('agent-alpha');
-const certB = ca.generateAgentCertificate('agent-beta');
-const caCert = ca.getCACertificate();
-
-const agentA = new mTLSAgent('agent-alpha', 'primary', tokenAuthority, certA, caCert);
-const agentB = new mTLSAgent('agent-beta', 'secondary', tokenAuthority, certB, caCert);
-
-await agentA.initialize();
-await agentB.initialize();
-
-await agentA.startTLSServer(8443);
-await agentB.startTLSServer(8444);
-
-await agentA.connectToPeer('localhost', 8444, 'agent-beta');
-await agentB.connectToPeer('localhost', 8443, 'agent-alpha');
-
-// Comunicação segura via mTLS + JWT
-await agentA.sendMessage('agent-beta', 'Mensagem segura!');
-```
-
-📖 **Documentação**: [examples/MTLS_AGENTS.md](examples/MTLS_AGENTS.md)
-
-### 3. Signal Protocol E2EE (End-to-End Encryption)
-
-Implementação do **Double Ratchet Algorithm** do Signal Protocol para criptografia end-to-end entre agentes com Perfect Forward Secrecy.
-
-**Características:**
-- 🔐 **X3DH**: Extended Triple Diffie-Hellman para key agreement
-- 🔄 **Double Ratchet**: Rotação contínua de chaves por mensagem
-- 🛡️ **Perfect Forward Secrecy (PFS)**: Comprometimento não afeta passado
-- 🔓 **Post-Compromise Security (PCS)**: Recuperação após comprometimento
-- 🤫 **Deniability**: Negabilidade criptográfica
-
-**Exemplo Rápido:**
-```typescript
-import { SignalE2EEAgent, TokenAuthority } from './examples/signal-e2ee-agents';
-
-const tokenAuthority = new TokenAuthority();
-
-const alice = new SignalE2EEAgent('alice', tokenAuthority);
-const bob = new SignalE2EEAgent('bob', tokenAuthority);
-
-await alice.initialize();
-await bob.initialize();
-
-// Trocar bundles públicos
-alice.registerPeerBundle('bob', bob.getPublicKeyBundle());
-bob.registerPeerBundle('alice', alice.getPublicKeyBundle());
-
-// Estabelecer sessão E2EE
-await alice.establishSession('bob');
-await bob.acceptSession('alice', alice.getIdentityPublicKey(), alice.getPublicKeyBundle().signedPreKey);
-
-// Enviar mensagem encriptada
-const msg = await alice.sendMessage('bob', 'Hello, secure world!');
-const plaintext = await bob.receiveMessage(msg);
-// plaintext = "Hello, secure world!"
-```
-
-📖 **Documentação**: [examples/SIGNAL_E2EE.md](examples/SIGNAL_E2EE.md)
-
-### 4. Combinando Signal E2EE + mTLS (Defesa em Profundidade)
-
-Para máxima segurança, combine ambos os protocolos:
-
-| Camada | Protocolo | Proteção |
-|--------|-----------|----------|
-| **Transporte** | mTLS | Anti-MITM, autenticação mútua |
-| **Aplicação** | Signal E2EE | Forward secrecy, conteúdo encriptado |
-| **Contexto** | JWT | Claims, autorização, expiração |
-
-📖 **Documentação Completa**: [examples/SIGNAL_E2EE.md#usando-ambos-em-conjunto](examples/SIGNAL_E2EE.md#usando-ambos-em-conjunto)
-
-## 🛠️ Requisitos
-
-- **Node.js**: >= 18.0.0 (suporte nativo a Ed25519)
-- **TypeScript**: >= 4.0.0 (recomendado)
-
-## 📄 Licença
-
-Este projeto é licenciado sob a **Cogfulness Ethical License (CEL)** - uma licença open source focada em uso ético e responsável de tecnologia cognitiva.
-
-## 🤝 Contribuindo
-
-Contribuições são bem-vindas! Este projeto segue uma filosofia de **zero dependencies** e simplicidade arquitetural.
-
-## 🔗 Links Úteis
-
-- [RFC 7519 - JSON Web Token (JWT)](https://tools.ietf.org/html/rfc7519)
-- [RFC 8037 - Edwards-Curve Digital Signature Algorithm (EdDSA)](https://tools.ietf.org/html/rfc8037)
-- [Node.js Crypto Documentation](https://nodejs.org/api/crypto.html)
-- [JWT.io - Debugger de Tokens](https://jwt.io/)
-
-## 📝 Changelog
-
-Veja todas as mudanças em [CHANGELOG.md](CHANGELOG.md)
+| Layer | Protocol | Purpose |
+| :--- | :--- | :--- |
+| **Transport** | mTLS / TLS 1.3 | Anti-MITM, Mutual Auth |
+| **Identity** | JWT (EdDSA) | Authentication, Claims, Expiration |
+| **Content** | Signal E2EE / AES-GCM | Perfect Forward Secrecy, Privacy |
+| **Binding** | DPoP (RFC 9449) | Anti-Replay, Token-to-Key binding |
+| **Context** | Semantic Types | Memory safety, Domain validation |
 
 ---
 
-**Desenvolvido com ❤️ para promover segurança através de simplicidade e opiniões fortes.**
+## 📖 Documentation Index
+
+- [CHANGELOG.md](CHANGELOG.md) - History of changes.
+- [examples/SECURE_AGENTS.md](examples/SECURE_AGENTS.md) - ⭐ Deep Dive into Agent Security.
+- [examples/SIGNAL_E2EE.md](examples/SIGNAL_E2EE.md) - How we implement Double Ratchet.
+- [examples/SELF_HEALING_AGENTS.md](examples/SELF_HEALING_AGENTS.md) - How agents survive token expiry.
+
+---
+
+## 📜 License
+
+This project is licensed under the **Cogfulness Ethical License (CEL)** - focusing on the ethical use of cognitive technologies.
+
+---
+
+**Developed with ❤️ by Deepmind Advanced Agentic Coding Team.**
+**Promoting safety through radical simplicity.**
