@@ -5,8 +5,15 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2026-02-26
+## [1.0.1] - 2026-02-26
 
+### Fixed
+- Correção de 53 erros de tipagem TypeScript em `src/auth/index.ts`, `src/crypto/index.ts`, `src/index.ts` e exemplos.
+- Ajustes na assinatura de funções (`generateKeyPair`) para retornarem nativamente `KeyObject`.
+- Resolução do erro relacionado ao `isolatedModules` separando corretamente os exports com `export type`.
+- Ajustes para satisfazer o strict mode e o `exactOptionalPropertyTypes` nos objetos `DPoPVerificationResult` e `KeyBundle`.
+
+## [1.0.0] - 2026-02-26
 ### Added
 
 #### Módulo Criptográfico (`src/crypto`)

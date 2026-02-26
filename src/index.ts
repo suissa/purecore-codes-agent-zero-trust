@@ -17,16 +17,16 @@
 // ============================================================================
 
 // Módulo Criptográfico
-export {
-  // Tipos
+export type {
   X25519KeyPair,
   Ed25519KeyPair,
   KeyBundle,
   SignalMessage,
   JWK,
   BloomFilterCRL,
-  
-  // Funções de baixo nível
+} from './crypto';
+
+export {
   generateX25519KeyPair,
   generateEd25519KeyPair,
   computeDH,
@@ -56,14 +56,12 @@ export {
 } from './crypto';
 
 // Módulo de Autenticação
-export {
-  // Tipos JWT
+export type {
   JWTPayload,
   JWTHeaderParameters,
   JWTVerifyResult,
   JWTVerifyOptions,
   
-  // Tipos DPoP
   DPoPAlgorithm,
   DPoPKeyPair,
   DPoPProof,
@@ -71,6 +69,15 @@ export {
   DPoPVerificationResult,
   DPoPServerConfig,
   DPoPHttpMethod,
+
+  TokenData,
+  TokenManagerConfig,
+  
+  CircuitBreakerConfig,
+  CircuitState,
+} from './auth';
+
+export {
   DPoPHttpMethods,
   
   // JWT
@@ -95,15 +102,6 @@ export {
   // Server
   DPoPServer,
   
-  // Token Manager
-  TokenData,
-  TokenManager,
-  TokenManagerConfig,
-  
-  // Circuit Breaker
-  CircuitBreaker,
-  CircuitBreakerConfig,
-  CircuitState,
   CircuitOpenError,
 } from './auth';
 
@@ -122,6 +120,11 @@ import {
   computeJWKThumbprint,
   publicKeyToJWK,
   secureZero,
+  generateEd25519KeyPair,
+  computeDH,
+  hkdf,
+  encrypt,
+  decrypt,
 } from './crypto';
 import {
   SignJWT,
@@ -131,6 +134,7 @@ import {
   createDPoPProof,
   verifyDPoPProof,
   DPoPKeyPair,
+  computeAccessTokenHash,
 } from './auth';
 import * as crypto from 'node:crypto';
 
@@ -146,8 +150,8 @@ export class TokenAuthority {
 
   constructor() {
     const keys = generateEdDSAKeyPair();
-    this.privateKey = crypto.createPrivateKey(keys.privateKey);
-    this.publicKey = crypto.createPublicKey(keys.publicKey);
+    this.privateKey = keys.privateKey;
+    this.publicKey = keys.publicKey;
   }
 
   async issueAgentToken(
@@ -199,7 +203,7 @@ export class SignalE2EEAgent extends EventEmitter {
   constructor(
     agentId: string,
     authority: TokenAuthority,
-    capabilities: string[] = []
+    _capabilities: string[] = []
   ) {
     super();
     this.agentId = agentId;
@@ -285,8 +289,10 @@ export class SignalE2EEAgent extends EventEmitter {
       header,
       ciphertext: Buffer.from(ciphertext).toString('hex'),
       nonce: Buffer.from(nonce).toString('hex'),
-      jwt: this.token || undefined,
     };
+    if (this.token) {
+      message.jwt = this.token;
+    }
 
     this.messageHistory.push(message);
     console.log(`📤 [${this.agentId}] → [${peerId}] (E2EE): [${content.length} chars encrypted]`);
@@ -329,12 +335,15 @@ export class SignalE2EEAgent extends EventEmitter {
     url: string,
     accessToken?: string
   ): Promise<ReturnType<typeof createDPoPProof>> {
-    return await createDPoPProof(this.dpopKeyPair, {
+    const opts: any = {
       method: method as any,
       url,
-      accessToken,
       signalIdentityKey: this.identityKey.publicKey,
-    });
+    };
+    if (accessToken) {
+      opts.accessToken = accessToken;
+    }
+    return await createDPoPProof(this.dpopKeyPair, opts);
   }
 
   /**

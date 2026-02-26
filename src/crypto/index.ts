@@ -240,14 +240,12 @@ export class X3DHKeyBundle {
   readonly signedPreKey: X25519KeyPair;
   readonly signedPreKeySignature: Uint8Array;
   readonly oneTimePreKeys: X25519KeyPair[];
-  private readonly signingKey: crypto.KeyObject;
 
   constructor() {
     this.identityKey = generateX25519KeyPair();
     this.signedPreKey = generateX25519KeyPair();
     
-    const { publicKey, privateKey } = generateEd25519KeyPair();
-    this.signingKey = privateKey;
+    const { privateKey } = generateEd25519KeyPair();
     this.signedPreKeySignature = new Uint8Array(
       crypto.sign(null, Buffer.from(this.signedPreKey.publicKey), privateKey)
     );
@@ -257,12 +255,15 @@ export class X3DHKeyBundle {
 
   getPublicBundle(): KeyBundle {
     const oneTimePreKey = this.oneTimePreKeys.shift();
-    return {
+    const bundle: KeyBundle = {
       identityKey: this.identityKey.publicKey,
       signedPreKey: this.signedPreKey.publicKey,
-      signedPreKeySignature: this.signedPreKeySignature,
-      oneTimePreKey: oneTimePreKey?.publicKey
+      signedPreKeySignature: this.signedPreKeySignature
     };
+    if (oneTimePreKey) {
+      bundle.oneTimePreKey = oneTimePreKey.publicKey;
+    }
+    return bundle;
   }
 
   performX3DHAsReceiver(
@@ -276,7 +277,7 @@ export class X3DHKeyBundle {
 
     let masterSecret: Uint8Array;
     if (usedOneTimePreKey && this.oneTimePreKeys.length > 0) {
-      const otpk = this.oneTimePreKeys[0];
+      const otpk = this.oneTimePreKeys[0]!;
       const dh4 = computeDH(otpk.privateKey, ephemeralKey);
       masterSecret = Buffer.concat([Buffer.from(dh1), Buffer.from(dh2), Buffer.from(dh3), Buffer.from(dh4)]);
     } else {
@@ -577,7 +578,7 @@ export class BloomFilter {
       const bitIndex = hash % (this.bits.length * 8);
       const byteIndex = Math.floor(bitIndex / 8);
       const bitPosition = bitIndex % 8;
-      this.bits[byteIndex] |= (1 << bitPosition);
+      this.bits[byteIndex] = this.bits[byteIndex]! | (1 << bitPosition);
     }
   }
 
@@ -588,7 +589,7 @@ export class BloomFilter {
       const byteIndex = Math.floor(bitIndex / 8);
       const bitPosition = bitIndex % 8;
       
-      if ((this.bits[byteIndex] & (1 << bitPosition)) === 0) {
+      if ((this.bits[byteIndex]! & (1 << bitPosition)) === 0) {
         return false;
       }
     }

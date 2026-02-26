@@ -1,5 +1,5 @@
 import * as crypto from 'node:crypto';
-import { SignJWT, jwtVerify, generateKeyPair } from './eddsa_jwt'; // Importando nossa lib
+import { SignJWT, jwtVerify, generateKeyPair } from './index'; // Importando nossa lib
 
 // --- Cenário: Setup Inicial ---
 const { privateKey: AUTH_SERVER_PRIVATE_KEY, publicKey: API_PUBLIC_KEY } = generateKeyPair();
@@ -7,7 +7,7 @@ const { privateKey: AUTH_SERVER_PRIVATE_KEY, publicKey: API_PUBLIC_KEY } = gener
 const ISSUER = 'https://meu-auth-server.com';
 
 // Audiences do nosso sistema
-const AUDIENCE_FINANCEIRO = 'https://api.financeira.com';
+
 const MCP_ECOSYSTEM_AUD = 'urn:mcp:ecosystem'; // Audiência que representa TODOS os seus MCPs
 
 // URLs específicas de alguns servidores MCP

@@ -3,7 +3,7 @@
  */
 
 import * as crypto from 'node:crypto';
-import { secureZero, computeJWKThumbprint, publicKeyToJWK, type JWK } from '../crypto';
+import { computeJWKThumbprint, publicKeyToJWK, type JWK } from '../crypto';
 
 // ============================================================================
 // Tipos JWT
@@ -101,7 +101,7 @@ export const DPoPHttpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD',
 // Utilitários
 // ============================================================================
 
-const Encoder = new TextEncoder();
+
 
 function base64UrlEncode(input: Uint8Array | string | object): string {
   let buffer: Buffer;
@@ -125,7 +125,7 @@ function parseTime(time: string | number | undefined): number {
 
   const regex = /^(\d+)([smhdwy])$/;
   const match = time.match(regex);
-  if (!match) throw new Error(`Formato de tempo inválido: ${time}`);
+  if (!match || !match[1] || !match[2]) throw new Error(`Formato de tempo inválido: ${time}`);
 
   const value = parseInt(match[1], 10);
   const unit = match[2];
@@ -225,7 +225,7 @@ export async function jwtVerify(
     throw new Error('JWT inválido: Formato deve ser header.payload.signature');
   }
 
-  const [encodedHeader, encodedPayload, encodedSignature] = parts;
+  const [encodedHeader, encodedPayload, encodedSignature] = parts as [string, string, string];
   const data = `${encodedHeader}.${encodedPayload}`;
 
   const publicKey = typeof key === 'string' 
@@ -285,10 +285,7 @@ export async function jwtVerify(
 }
 
 export function generateKeyPair(algorithm: 'EdDSA' | 'ES256' = 'EdDSA') {
-  return crypto.generateKeyPairSync(algorithm.toLowerCase() as any, {
-    publicKeyEncoding: { type: 'spki', format: 'pem' },
-    privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
-  });
+  return crypto.generateKeyPairSync(algorithm.toLowerCase() as any);
 }
 
 // ============================================================================
@@ -412,7 +409,7 @@ export async function verifyDPoPProof(
       return { valid: false, error: 'Formato JWT inválido' };
     }
 
-    const [encodedHeader, encodedPayload] = parts;
+    const [encodedHeader, encodedPayload] = parts as [string, string, string];
     const header = JSON.parse(base64UrlDecode(encodedHeader)) as JWTHeaderParameters;
     const payload = JSON.parse(base64UrlDecode(encodedPayload)) as DPoPProofPayload;
 
@@ -460,12 +457,15 @@ export async function verifyDPoPProof(
       return { valid: false, error: 'Proof expirado ou clock skew excessivo' };
     }
 
-    return {
+    const result: DPoPVerificationResult = {
       valid: true,
       proof: { jwt, header, payload },
-      boundAccessToken: payload.ath,
       bindingId: payload.jti
     };
+    if (payload.ath !== undefined) {
+      result.boundAccessToken = payload.ath;
+    }
+    return result;
 
   } catch (error) {
     return {
@@ -487,7 +487,7 @@ export function createDPoPAuthHeader(accessToken: string, dpopProof: string): st
  */
 export function parseDPoPAuthHeader(header: string): { accessToken: string; dpopProof: string } | null {
   const match = header.match(/^DPoP\s+(\S+)(?:\s+dpop=(\S+))?$/);
-  if (!match) return null;
+  if (!match || !match[1]) return null;
   
   return {
     accessToken: match[1],
@@ -579,12 +579,14 @@ export class DPoPServer {
       return { valid: false, error: 'Header DPoP inválido' };
     }
 
-    const verification = await verifyDPoPProof(parsed.dpopProof, {
+    const verifyOpts: any = {
       algorithms: this.config.algorithms,
-      requireAth: this.config.requireAth,
-      requiredMethod: options?.requiredMethod,
-      requiredUrl: options?.requiredUrl
-    });
+      requireAth: this.config.requireAth
+    };
+    if (options?.requiredMethod) verifyOpts.requiredMethod = options.requiredMethod;
+    if (options?.requiredUrl) verifyOpts.requiredUrl = options.requiredUrl;
+
+    const verification = await verifyDPoPProof(parsed.dpopProof, verifyOpts);
 
     if (!verification.valid || !verification.proof) {
       return verification;
