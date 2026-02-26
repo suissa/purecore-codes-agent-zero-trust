@@ -409,7 +409,7 @@ export class DoubleRatchet {
         return plaintext;
       } catch {
         secureZero(skippedKey);
-        throw;
+        throw new Error('Falha ao descriptografar mensagem pulada');
       }
     }
 
