@@ -1,5 +1,5 @@
 /**
- * @purecore/agentic-networkfortress
+ * @purecore-codes-codes/agent-zero-trust
  * Módulo Criptográfico - Signal Protocol, X3DH, Double Ratchet
  * 
  * Implementação zero-dependency do protocolo Signal para comunicação

@@ -1,5 +1,5 @@
 /**
- * @purecore/agentic-networkfortress
+ * @purecore-codes-codes/agent-zero-trust
  * 
  * Biblioteca de segurança para agentes autônomos de IA
  * Implementa arquitetura Zero-Trust tri-camada:
@@ -7,7 +7,7 @@
  * - Signal Protocol (Double Ratchet) para E2EE
  * - DPoP (RFC 9449) para autorização contextual
  * 
- * @package @purecore/agentic-networkfortress
+ * @package @purecore-codes-codes/agent-zero-trust
  * @version 1.0.0
  * @license Apache-2.0
  */
@@ -438,4 +438,4 @@ export const AuthUtils = {
 // ============================================================================
 
 export const VERSION = '1.0.0';
-export const LIBRARY_NAME = '@purecore/agentic-networkfortress';
+export const LIBRARY_NAME = '@purecore-codes-codes/agent-zero-trust';

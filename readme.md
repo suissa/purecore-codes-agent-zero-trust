@@ -1,8 +1,8 @@
-# @purecore/agentic-networkfortress
+# @purecore-codes-codes/agent-zero-trust
 
-[![npm version](https://img.shields.io/npm/v/@purecore/agentic-networkfortress.svg)](https://www.npmjs.com/package/@purecore/agentic-networkfortress)
-[![License](https://img.shields.io/npm/l/@purecore/agentic-networkfortress.svg)](https://github.com/purecore/agentic-networkfortress/blob/main/LICENSE)
-[![Node Version](https://img.shields.io/node/v/@purecore/agentic-networkfortress.svg)](https://nodejs.org)
+[![npm version](https://img.shields.io/npm/v/@purecore-codes-codes/agent-zero-trust.svg)](https://www.npmjs.com/package/@purecore-codes-codes/agent-zero-trust)
+[![License](https://img.shields.io/npm/l/@purecore-codes-codes/agent-zero-trust.svg)](https://github.com/purecore-codes/agent-zero-trust/blob/main/LICENSE)
+[![Node Version](https://img.shields.io/node/v/@purecore-codes-codes/agent-zero-trust.svg)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org)
 
 **Arquitetura Zero-Trust para Agentes Autônomos de IA**
@@ -22,18 +22,18 @@ Uma biblioteca de segurança criptográfica que implementa defesa em profundidad
 ## 🚀 Instalação
 
 ```bash
-npm install @purecore/agentic-networkfortress
+npm install @purecore-codes-codes/agent-zero-trust
 # ou
-bun add @purecore/agentic-networkfortress
+bun add @purecore-codes-codes/agent-zero-trust
 # ou
-yarn add @purecore/agentic-networkfortress
+yarn add @purecore-codes-codes/agent-zero-trust
 ```
 
 ## 📖 Documentação Completa
 
 - [Paper Científico](./docs/AGENTIC_ZERO_TRUST_PAPER.md)
 - [Exemplos de Uso](./examples/)
-- [API Reference](https://purecore.dev/agentic-networkfortress/docs/api)
+- [API Reference](https://purecore-codes.dev/agent-zero-trust/docs/api)
 
 ## 🔐 Recursos Principais
 
@@ -66,7 +66,7 @@ yarn add @purecore/agentic-networkfortress
 import { 
   SignalE2EEAgent, 
   TokenAuthority 
-} from '@purecore/agentic-networkfortress';
+} from '@purecore-codes-codes/agent-zero-trust';
 
 // 1. Criar autoridade de tokens
 const authority = new TokenAuthority();
@@ -112,7 +112,7 @@ import {
   createDPoPProof,
   computeJWKThumbprint,
   publicKeyToJWK
-} from '@purecore/agentic-networkfortress';
+} from '@purecore-codes-codes/agent-zero-trust';
 
 // 1. Gerar chave DPoP
 const dpopKey = generateDPoPKeyPair('EdDSA');
@@ -137,7 +137,7 @@ const authHeader = `DPoP your_access_token dpop=${proof.jwt}`;
 ### Token Manager com Promise Latching
 
 ```typescript
-import { TokenManager } from '@purecore/agentic-networkfortress';
+import { TokenManager } from '@purecore-codes-codes/agent-zero-trust';
 
 const tokenManager = new TokenManager({
   refreshThresholdSeconds: 300,
@@ -167,7 +167,7 @@ const token = await tokenManager.getToken();
 ### Circuit Breaker para Resiliência
 
 ```typescript
-import { CircuitBreaker, CircuitOpenError } from '@purecore/agentic-networkfortress';
+import { CircuitBreaker, CircuitOpenError } from '@purecore-codes-codes/agent-zero-trust';
 
 const breaker = new CircuitBreaker({
   threshold: 5,        // Falhas antes de abrir
@@ -193,7 +193,7 @@ import {
   createBloomFilterForCRL, 
   isRevoked,
   BloomFilter 
-} from '@purecore/agentic-networkfortress';
+} from '@purecore-codes-codes/agent-zero-trust';
 
 // 1. Criar Bloom Filter com lista de DIDs revogados
 const revokedDIDs = ['did:agent:123', 'did:agent:456'];
@@ -215,7 +215,7 @@ if (!await isRevoked(peerDID, bloomFilter)) {
 ### Estrutura de Módulos
 
 ```
-@purecore/agentic-networkfortress/
+@purecore-codes-codes/agent-zero-trust/
 ├── src/
 │   ├── crypto/          # Signal Protocol, X3DH, Double Ratchet
 │   │   └── index.ts     # Criptografia de baixo nível
@@ -243,7 +243,7 @@ if (!await isRevoked(peerDID, bloomFilter)) {
 A biblioteca implementa zeroização segura de chaves sensíveis:
 
 ```typescript
-import { secureZero, DoubleRatchet } from '@purecore/agentic-networkfortress';
+import { secureZero, DoubleRatchet } from '@purecore-codes-codes/agent-zero-trust';
 
 // Chaves são zeroizadas automaticamente após uso
 const ratchet = new DoubleRatchet();
@@ -275,7 +275,7 @@ secureZero(sensitiveKey);
 ### LangChain
 
 ```typescript
-import { SignalE2EEAgent } from '@purecore/agentic-networkfortress';
+import { SignalE2EEAgent } from '@purecore-codes-codes/agent-zero-trust';
 
 // Criar wrapper para LangChain agents
 const secureAgent = new SignalE2EEAgent('langchain-agent', authority);
@@ -324,12 +324,12 @@ Apache 2.0 - veja [LICENSE](./LICENSE) para detalhes.
 Se usar esta biblioteca em pesquisa, cite:
 
 ```bibtex
-@article{agentic-networkfortress2026,
+@article{agent-zero-trust2026,
   title={Toward a Sovereign Agentic Zero-Trust Architecture: Multi-Layered Security for Autonomous AI Swarms},
   author={Agentic NetworkFortress Core Team},
   journal={arXiv preprint},
   year={2026},
-  url={https://purecore.dev/agentic-networkfortress/docs/paper}
+  url={https://purecore-codes.dev/agent-zero-trust/docs/paper}
 }
 ```
 
@@ -345,9 +345,9 @@ Contribuições são bem-vindas! Veja nosso [Guia de Contribuição](./CONTRIBUT
 
 ## 📞 Contato
 
-- **Website:** https://purecore.dev
-- **Email:** security@purecore.dev
-- **GitHub:** https://github.com/purecore/agentic-networkfortress
+- **Website:** https://purecore-codes.dev
+- **Email:** security@purecore-codes.dev
+- **GitHub:** https://github.com/purecore-codes/agent-zero-trust
 
 ## ⚠️ Aviso de Segurança
 

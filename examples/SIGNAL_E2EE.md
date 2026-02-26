@@ -170,7 +170,7 @@ Mensagem 3: ChaveC ──────────────────
 
 ```bash
 # Clone o repositório
-cd purecore-jwtfy
+cd purecore-codes-jwtfy
 
 # Instale dependências
 bun install
@@ -454,4 +454,4 @@ Agent A                                                Agent B
 
 ---
 
-*Documentação criada para o projeto @purecore/one-jwt-4-all*
+*Documentação criada para o projeto @purecore-codes/one-jwt-4-all*

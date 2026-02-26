@@ -151,7 +151,7 @@ Alice                                                    Bob
 | Key Exchange | X25519 | Node.js `crypto` |
 | E2EE Encryption | AES-256-GCM | Node.js `crypto` |
 | Key Derivation | HKDF-SHA256 | Node.js `crypto` |
-| JWT Signing | Ed25519 (EdDSA) | purecore-jwtfy |
+| JWT Signing | Ed25519 (EdDSA) | purecore-codes-jwtfy |
 | Ratchet | Double Ratchet (Signal) | Implementação própria |
 
 ---

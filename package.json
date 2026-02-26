@@ -1,6 +1,6 @@
 {
-  "name": "@purecore/agentic-networkfortress",
-  "version": "1.0.0",
+  "name": "@purecore-br/agent-zero-trust",
+  "version": "0.1.0",
   "description": "Zero-Trust security architecture for autonomous AI agents. Implements tri-layered defense: mTLS, Signal Protocol E2EE, and DPoP authorization.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -63,7 +63,7 @@
   ],
   "author": {
     "name": "suissAI",
-    "email": "contact@purecore.dev"
+    "email": "contact@purecore-codes.dev"
   },
   "contributors": [
     "Agentic NetworkFortress Core Team"
@@ -71,11 +71,11 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/purecore/agentic-networkfortress.git"
+    "url": "https://github.com/purecore-codes/agent-zero-trust.git"
   },
-  "homepage": "https://purecore.dev/agentic-networkfortress",
+  "homepage": "https://purecore-codes.dev/agent-zero-trust",
   "bugs": {
-    "url": "https://github.com/purecore/agentic-networkfortress/issues"
+    "url": "https://github.com/purecore-codes/agent-zero-trust/issues"
   },
   "engines": {
     "node": ">=18.0.0"

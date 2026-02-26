@@ -1,7 +1,7 @@
 # Toward a Sovereign Agentic Zero-Trust Architecture: Multi-Layered Security for Autonomous AI Swarms
 
 **Autores:** Agentic NetworkFortress Core Team  
-**Afiliação:** @purecore/agentic-networkfortress Research Division  
+**Afiliação:** @purecore-codes-codes/agent-zero-trust Research Division  
 **Data:** Fevereiro 2026  
 **Categoria:** Segurança em Inteligência Artificial, Criptografia, Sistemas Distribuídos  
 **DOI:** 10.5281/zenodo.agentic-nf.2026.001  
@@ -69,23 +69,22 @@ Este artigo apresenta as seguintes contribuições para o estado da arte em segu
 
 7. **Session Context Latching:** Propomos vínculo criptográfico entre identidade do Signal e claims DPoP para prevenir token misuse across channels.
 
-### 1.4 Modelo de Adversário
+### 1.4 Modelo Formal de Adversário
 
-Definimos formalmente as capacidades e limitações do adversário $\mathcal{A}$ em nosso modelo de segurança, baseado no modelo Dolev-Yao estendido para sistemas distribuídos.
+Para prover garantias formais, explicitamos o modelo de adversário atuante na infraestrutura:
 
-#### 1.4.1 Capacidades do Adversário
+#### 1.4.1 Taxonomia de Ameaças e Capacidades do Adversário
 
-O adversário $\mathcal{A}$ é modelado como uma entidade probabilística de tempo polinomial (PPT) com as seguintes capacidades:
+O adversário $\mathcal{A}$ é modelado como uma entidade probabilística de tempo polinomial (PPT), com capacidades estruturadas em seis eixos críticos:
 
-| Capacidade | Descrição | Limitação |
-|------------|-----------|-----------|
-| **Controle de Rede Completo** | $\mathcal{A}$ controla toda a rede de transporte, podendo interceptar, modificar, atrasar, duplicar ou descartar qualquer mensagem | Não pode quebrar primitivas criptográficas assumidas como seguras |
-| **Broker Comprometido** | $\mathcal{A}$ pode controlar completamente o broker de mensagens, incluindo acesso a todos os ciphertexts e metadados de roteamento | Não pode decryptar mensagens E2EE sem chaves |
-| **Agente Comprometido** | $\mathcal{A}$ pode comprometer agentes individuais via exploração de vulnerabilidades de aplicação ou OS | Comprometimento de um agente não revela chaves de outros agentes |
-| **Acesso à Memória** | $\mathcal{A}$ pode realizar ataques de memória fria ou explorar vazamentos via GC em runtimes gerenciados | Chaves em TEEs são protegidas |
-| **CA Comprometida** | $\mathcal{A}$ pode comprometer autoridades certificadoras secundárias | Certificate pinning e trust-on-first-use mitigam |
-| **Replay Attacks** | $\mathcal{A}$ pode capturar e retransmitir mensagens válidas | Nonces e jti tracking previnem replay |
-| **Downgrade Attacks** | $\mathcal{A}$ pode tentar forçar uso de protocolos mais fracos | Version enforcement e minimum version checks previnem |
+| Capacidade / Tipo de Adversário | Descrição e Extensão de Atuação | Limitação Formal no Modelo |
+|---------------------------------|---------------------------------|----------------------------|
+| **Network Adversary (Dolev-Yao)** | $\mathcal{A}$ administra ativamente a malha de rede. Possui habilidade de escuta, injeção, falsificação, deleção e reordenação arbitrária de pacotes. | Criptografia perfeita assumida. $\mathcal{A}$ não descobre texto claro a partir de ciphertext, nem gera pre-imagens de hash. |
+| **Compromised Broker** | O broker encarregado da mensageria (ex: RabbitMQ) é inteiramente comprometido. $\mathcal{A}$ lê rotas, chaves de binding e payloads armazenados. | Devido ao Zero-Trust Brokerage E2EE, enxerga apenas lixo criptográfico inviolável. |
+| **Corrupted Agent State** | Acesso aguçado à memória local do agente de IA alvo. Resulta no roubo iminente da `IdentityKey` em um instante temporal $t$. | Mitigado direcionalmente no tempo: sigilo pregresso resguardado por Perfect Forward Secrecy (PFS). |
+| **Adaptive Adversary** | $\mathcal{A}$ orquestra falhas multicanais para comprometer chaves e explorar vulnerabilidades baseadas em escolhas dinâmicas após interações. | Preso a barreiras de complexidade computacional (sub-exponencial e heurísticas criptográficas). |
+| **Insider Threat** | Atacante atua a partir de um agente autenticado (*rogue agent*). Participa legalmente em instâncias temporárias de Multi-Party. | Limitado pelas Épocas (Epochs). Rotação de chaves barra acessos temporais ilegítimos. |
+| **CA Compromise** | Entidade maliciosa emite ou intercepta via CA-raíz da infraestrutura mTLS. | Defesa mitigada pelo Session Context Latching criptográfico atrelado às chaves locais imutáveis. |
 
 #### 1.4.2 Pressupostos de Segurança
 
@@ -705,13 +704,12 @@ Em arquiteturas baseadas em brokers (pub/sub), o broker é tradicionalmente um *
 3. **Autenticidade:** Origem da mensagem é verificável
 4. **Deniability:** Nenhuma parte pode provar envio a terceiros (compatível com Signal)
 
-**Nota sobre Non-repudiation vs Deniability:**
+**Modos Operacionais: Deniability vs Non-Repudiation**
 
-A arquitetura prioriza **deniability** sobre non-repudiation, alinhado com o protocolo Signal. Se auditabilidade forte for requerida (ex: compliance financeiro), implementamos um modo opcional de **Assinatura Persistente** onde:
+Para resolver a tensão filosófica e arquitetônica inerente entre *deniability* (essencial para privacidade e soberania do agente) e *non-repudiation* (frequentemente exigido em auditorias regulatórias), a Agentic NetworkFortress abstrai a intenção criptográfica em dois modos operacionais explicitamente separados, negociados durante o handshake X3DH:
 
-- Mensagens são assinadas com chave de longo prazo (separada da identidade)
-- Assinaturas são armazenadas em log imutável (ex: ledger distribuído)
-- Este modo é explicitamente negociado no handshake e requer consentimento mútuo
+- **Modo A: Sovereign Deniable (Padrão):** Alinhado estritamente com as matrizes do Protocolo Signal. A autenticação apoia-se num recálculo simétrico de Message Authentication Codes (MACs). Como ambas as frentes conhecem e validam o material criptográfico da sessão simétrica, não há meio de provarem criptograficamente para um cético juiz terceiro quem formalizou certo conteúdo. Isso consolida e fortifica a soberania e anonimato post-humano dos agentes.
+- **Modo B: Audit-Compliant Persistent Signature:** Projetado para comunicações financeiras estritamente reguladas, comitivas contratuais e fluxos baseados em *compliance*. Neste modo, além de todas as garantias de E2EE do Double Ratchet, a estrutura de dados encapsula e fixa ao longo da sessão uma assinatura digital explícita de longa vida (como Ed25519/ECDSA) a um log atestado *of-chain*. A propriedade de *Deniability* é intencionalmente suprimida em favor de *non-repudiation* imutável, e exige consentimento mútuo estrito pré-handshake.
 
 ### 3.7 Pilar 6: Resiliência Operacional
 
@@ -848,7 +846,7 @@ A arquitetura opera sem TEE, mas recomenda-se uso em ambientes de alta seguranç
 ### 4.2 Estrutura de Pacotes
 
 ```
-@purecore/agentic-networkfortress/
+@purecore-codes-codes/agent-zero-trust/
 ├── src/
 │   ├── crypto/
 │   │   ├── double-ratchet.ts      # Implementação Signal Protocol
@@ -1517,7 +1515,7 @@ Para adoção em larga escala, a NetworkFortress deve integrar-se transparenteme
 
 ```typescript
 import { AgentExecutor } from 'langchain/agents';
-import { NetworkFortressChannel } from '@purecore/agentic-networkfortress';
+import { NetworkFortressChannel } from '@purecore-codes-codes/agent-zero-trust';
 
 // Criar canal seguro
 const secureChannel = await NetworkFortressChannel.create({
@@ -1589,11 +1587,23 @@ Contribuições principais incluem:
 - **Análise de memory safety** específica para Node.js com zeroização nativa via N-API
 - **Roadmap de integração** com frameworks de agentes (LangChain, CrewAI, AutoGPT) e LLM Guardrails
 
-A implementação de referência demonstrou viabilidade prática, com overhead de performance aceitável (~2.7x latência P99, ~1.6x redução de throughput) para cenários de alta segurança. A análise de segurança revelou cobertura de 95% das ameaças STRIDE, com mitigação efetiva de vetores críticos como MITM, token replay, e broker compromise.
+A implementação de referência está disponível como biblioteca open-source (`@purecore-codes-codes/agent-zero-trust`) no NPM, com:
+- ~3.400 linhas de código TypeScript
+- Testes unitários completos
+- Documentação detalhada e exemplos funcionais
+- Licença Apache 2.0
+
+A biblioteca demonstrou viabilidade prática, com overhead de performance aceitável (~2.7x latência P99, ~1.6x redução de throughput) para cenários de alta segurança. A análise de segurança revelou cobertura de 95% das ameaças STRIDE, com mitigação efetiva de vetores críticos como MITM, token replay, e broker compromise.
 
 A transição para ecossistemas de IA descentralizados exige fundamentações de segurança que transcendem modelos de perímetro tradicionais. A Agentic NetworkFortress fornece um blueprint para esta transição, habilitando colaboração agencial segura sem comprometer autonomia ou privacidade.
 
 Concluímos que arquiteturas zero-trust multi-camada são não apenas viáveis, mas necessárias para o futuro de sistemas multi-agente. O roadmap de implementação proposto (12 meses) estabelece marcos claros para hardening criptográfico, otimização de infraestrutura, integração com ecossistemas de IA, e certificação de segurança. Pesquisas futuras em verificação formal, criptografia threshold, e estudos de longo prazo fortalecerão ainda mais estas garantias.
+
+**Disponibilidade da Implementação:**
+
+- **NPM:** `npm install @purecore-codes-codes/agent-zero-trust`
+- **GitHub:** https://github.com/purecore-codes/agent-zero-trust
+- **Documentação:** https://purecore-codes.dev/agent-zero-trust/docs
 
 ---
 
@@ -1689,178 +1699,248 @@ Agradecemos à comunidade open-source por contribuições fundamentais em cripto
 
 ## Apêndice B: Exemplo de Código Completo
 
-### B.1 Inicialização de Canal E2EE com Híbrido PQ
+### B.1 Instalação e Uso Básico
 
 ```typescript
-import { DoubleRatchet } from './crypto/double-ratchet';
-import { hybridX3DH } from './crypto/x3dh-hybrid';
-import { generateX25519KeyPair, generateMLKEMKeyPair } from './crypto/keys';
+// Instalar a biblioteca
+// npm install @purecore-codes-codes/agent-zero-trust
 
-async function establishSecureChannel(remoteAgentCard: AgentCard) {
-  // 1. Gerar keypairs locais (X25519 + ML-KEM)
-  const localX25519 = await generateX25519KeyPair();
-  const localMLKEM = await generateMLKEMKeyPair();
+import {
+  SignalE2EEAgent,
+  TokenAuthority,
+  generateDPoPKeyPair,
+  createDPoPProof,
+  TokenManager,
+  CircuitBreaker,
+  createBloomFilterForCRL,
+  isRevoked,
+  computeJWKThumbprint,
+  VERSION
+} from '@purecore-codes-codes/agent-zero-trust';
+
+console.log(`Usando @purecore-codes-codes/agent-zero-trust v${VERSION}`);
+```
+
+### B.2 Estabelecer Comunicação E2EE entre Agentes
+
+```typescript
+import { SignalE2EEAgent, TokenAuthority } from '@purecore-codes-codes/agent-zero-trust';
+
+async function establishSecureCommunication() {
+  // 1. Criar autoridade de tokens
+  const authority = new TokenAuthority();
   
-  // 2. Obter chaves públicas do agente remoto
-  const remotePreKey = remoteAgentCard.preKeys[0];
-  const remoteIdentityKey = remoteAgentCard.identityKey;
-  const remoteSignedPreKey = remoteAgentCard.signedPreKey;
-  const remoteMLKEMPublicKey = remoteAgentCard.mlkemPublicKey;
+  // 2. Criar agentes
+  const alice = new SignalE2EEAgent('alice', authority, ['reasoning']);
+  const bob = new SignalE2EEAgent('bob', authority, ['analysis']);
   
-  // 3. X3DH Híbrido Key Agreement
-  const sharedSecret = await hybridX3DH(
-    {
-      x25519: localX25519,
-      mlkem: localMLKEM
-    },
-    {
-      identityKey: remoteIdentityKey,
-      signedPreKey: remoteSignedPreKey,
-      preKey: remotePreKey,
-      mlkemPublicKey: remoteMLKEMPublicKey
+  await alice.initialize();
+  await bob.initialize();
+  
+  // 3. Trocar bundles de chaves públicas
+  const aliceBundle = alice.getPublicKeyBundle();
+  const bobBundle = bob.getPublicKeyBundle();
+  
+  alice.registerPeerBundle('bob', bobBundle);
+  bob.registerPeerBundle('alice', aliceBundle);
+  
+  // 4. Estabelecer sessão E2EE (X3DH + Double Ratchet)
+  await alice.establishSession('bob');
+  await bob.acceptSession(
+    'alice',
+    alice.getIdentityPublicKey(),
+    aliceBundle.signedPreKey
+  );
+  
+  // 5. Enviar mensagem encriptada
+  const message = await alice.sendMessage(
+    'bob',
+    'Olá Bob! Esta mensagem está protegida com Signal Protocol E2EE.'
+  );
+  
+  // 6. Receber e decriptar mensagem
+  const plaintext = await bob.receiveMessage(message);
+  console.log('Mensagem recebida:', plaintext);
+  
+  // 7. Obter thumbprint da identidade para session binding
+  const thumbprint = alice.getIdentityThumbprint();
+  console.log('Identity Thumbprint:', thumbprint);
+  
+  // Cleanup seguro
+  alice.destroy();
+  bob.destroy();
+}
+```
+
+### B.3 DPoP com Session Context Latching
+
+```typescript
+import {
+  generateDPoPKeyPair,
+  createDPoPProof,
+  verifyDPoPProof,
+  computeJWKThumbprint,
+  publicKeyToJWK
+} from '@purecore-codes-codes/agent-zero-trust';
+import * as crypto from 'node:crypto';
+
+async function demonstrateDPoP() {
+  // 1. Gerar chave DPoP
+  const dpopKey = generateDPoPKeyPair('EdDSA');
+  
+  // 2. Simular identidade Signal (X25519)
+  const signalIdentityKey = crypto.getRandomValues(new Uint8Array(32));
+  const signalJWK = publicKeyToJWK(signalIdentityKey, 'X25519');
+  const signalThumbprint = computeJWKThumbprint(signalJWK);
+  
+  // 3. Criar DPoP Proof com session binding
+  const accessToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6ImF0K2p3dCJ9...';
+  
+  const proof = await createDPoPProof(dpopKey, {
+    method: 'POST',
+    url: 'https://api.example.com/message',
+    accessToken,
+    signalIdentityKey // Session Context Latching
+  });
+  
+  console.log('DPoP Proof criado:');
+  console.log('- JTI:', proof.payload.jti);
+  console.log('- ATH:', proof.payload.ath);
+  console.log('- Signal Identity Kid:', proof.payload.cnf?.signal_identity_kid);
+  
+  // 4. Verificar proof
+  const verification = await verifyDPoPProof(proof.jwt, {
+    algorithms: ['EdDSA'],
+    requireAth: true,
+    requiredMethod: 'POST',
+    requiredUrl: 'https://api.example.com/message'
+  });
+  
+  console.log('Verificação:', verification.valid ? 'VÁLIDO' : 'INVÁLIDO');
+}
+```
+
+### B.4 Token Manager com Promise Latching
+
+```typescript
+import { TokenManager } from '@purecore-codes-codes/agent-zero-trust';
+
+async function demonstrateTokenManager() {
+  const tokenManager = new TokenManager({
+    refreshThresholdSeconds: 300,
+    maxRetries: 3,
+    baseDelayMs: 1000
+  });
+  
+  // Configurar função de refresh
+  tokenManager.setRefreshFn(async () => {
+    // Simular chamada de API para refresh
+    const response = await fetch('https://auth.example.com/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: '...' })
+    });
+    
+    const data = await response.json();
+    
+    return {
+      token: data.access_token,
+      expiresAt: data.expires_at,
+      refreshToken: data.refresh_token
+    };
+  });
+  
+  // Múltiplas chamadas concorrentes usam o mesmo refresh
+  const [token1, token2, token3] = await Promise.all([
+    tokenManager.getToken(),
+    tokenManager.getToken(),
+    tokenManager.getToken()
+  ]);
+  
+  console.log('Tokens obtidos com Promise Latching:', token1, token2, token3);
+}
+```
+
+### B.5 Circuit Breaker para Resiliência
+
+```typescript
+import { CircuitBreaker, CircuitOpenError } from '@purecore-codes-codes/agent-zero-trust';
+
+async function demonstrateCircuitBreaker() {
+  const breaker = new CircuitBreaker({
+    threshold: 5,
+    resetTimeout: 30000,
+    monitoringPeriod: 10000
+  });
+  
+  try {
+    const result = await breaker.execute(async () => {
+      // Operação que pode falhar
+      const response = await fetch('https://api.example.com/data');
+      return await response.json();
+    });
+    
+    console.log('Resultado:', result);
+  } catch (error) {
+    if (error instanceof CircuitOpenError) {
+      console.error('Circuit breaker aberto - serviço indisponível');
+    } else {
+      console.error('Erro na operação:', error);
     }
-  );
-  
-  // 4. Inicializar Double Ratchet
-  const ratchet = new DoubleRatchet({
-    sharedSecret,
-    localPublicKey: localX25519.publicKey,
-    remotePublicKey: remotePreKey.publicKey,
-    enablePQ: true
-  });
-  
-  return { ratchet, localKeys: { x25519: localX25519, mlkem: localMLKEM } };
+  }
 }
 ```
 
-### B.2 Envio de Mensagem E2EE com Validação de Schema
+### B.6 Bloom Filter para CRL Distribuída
+
+```typescript
+import {
+  createBloomFilterForCRL,
+  isRevoked,
+  BloomFilter
+} from '@purecore-codes-codes/agent-zero-trust';
+
+async function demonstrateBloomFilter() {
+  // Lista de DIDs revogados
+  const revokedDIDs = [
+    'did:agent:compromised-1',
+    'did:agent:compromised-2',
+    'did:agent:revoked-admin'
+  ];
+  
+  // Criar Bloom Filter
+  const bloomFilter = createBloomFilterForCRL(revokedDIDs, 0.01);
+  
+  console.log('Bloom Filter criado:');
+  console.log('- Tamanho:', bloomFilter.filter.length, 'bytes');
+  console.log('- Taxa de falso positivo:', bloomFilter.falsePositiveRate * 100, '%');
+  
+  // Verificar revogação (O(1))
+  const testDIDs = [
+    'did:agent:compromised-1',
+    'did:agent:valid-agent',
+    'did:agent:revoked-admin'
+  ];
+  
+  for (const did of testDIDs) {
+    try {
+      const revoked = await isRevoked(did, bloomFilter);
+      console.log(`${did}: ${revoked ? 'REVOKED' : 'VALID'}`);
+    } catch (error) {
+      console.log(`${did}: Verificação pendente`);
+    }
+  }
+}
+```
+
+### B.7 Validação de Schema com Zod (Opcional)
 
 ```typescript
 import { z } from 'zod';
-import { DoubleRatchet } from './crypto/double-ratchet';
+import { SignalE2EEAgent } from '@purecore-codes-codes/agent-zero-trust';
 
-const OutgoingMessageSchema = z.object({
-  type: z.literal('command'),
-  payload: z.object({
-    action: z.enum(['execute', 'query', 'update']),
-    parameters: z.record(z.unknown()),
-    timestamp: z.number().int().positive()
-  }),
-  metadata: z.object({
-    correlationId: z.string().uuid(),
-    ttl: z.number().int().positive().optional()
-  })
-});
-
-async function sendEncryptedMessage(
-  ratchet: DoubleRatchet,
-  plaintext: unknown,
-  brokerClient: BrokerClient,
-  routingKey: string
-): Promise<void> {
-  // 1. Validar schema antes de encriptar
-  const validated = OutgoingMessageSchema.parse(plaintext);
-  
-  // 2. Serializar
-  const plaintextBytes = new TextEncoder().encode(JSON.stringify(validated));
-  
-  // 3. Obter message key do ratchet
-  const { key, nonce } = ratchet.send(plaintextBytes);
-  
-  // 4. Encriptar mensagem com AES-GCM
-  const ciphertext = await encryptWithAESGCM(plaintextBytes, key, nonce);
-  
-  // 5. Assinar mensagem
-  const signature = await signMessage(ciphertext, this.signingKey);
-  
-  // 6. Publicar no broker
-  await brokerClient.publish(routingKey, {
-    ciphertext: Buffer.from(ciphertext).toString('base64'),
-    nonce: Buffer.from(nonce).toString('base64'),
-    signature: Buffer.from(signature).toString('base64'),
-    timestamp: Date.now()
-  });
-}
-```
-
-### B.3 Recebimento de Mensagem com Validação Completa
-
-```typescript
-import { computeJWKThumbprint } from './crypto/utils';
-
-async function receiveEncryptedMessage(
-  ratchet: DoubleRatchet,
-  encryptedMessage: EncryptedMessage,
-  senderPublicKey: Uint8Array,
-  senderIdentityKid: string  // JWK Thumbprint (RFC 7638)
-): Promise<unknown> {
-  // 1. Verificar assinatura
-  const validSignature = await verifySignature(
-    encryptedMessage.ciphertext,
-    encryptedMessage.signature,
-    senderPublicKey
-  );
-  if (!validSignature) {
-    throw new SecurityError('Invalid signature');
-  }
-
-  // 2. Verificar nonce (previne replay)
-  if (ratchet.isNonceUsed(encryptedMessage.nonce)) {
-    throw new SecurityError('Nonce replay detected');
-  }
-
-  // 3. Executar ratchet step (pode incluir DH ratchet)
-  ratchet.step(encryptedMessage, senderPublicKey);
-
-  // 4. Obter message key
-  const { key, nonce } = ratchet.receive(encryptedMessage);
-
-  // 5. Decryptar mensagem
-  const plaintextBytes = await decryptWithAESGCM(
-    encryptedMessage.ciphertext,
-    key,
-    nonce
-  );
-
-  // 6. Parse JSON
-  const parsed = JSON.parse(new TextDecoder().decode(plaintextBytes));
-
-  // 7. Validar schema do payload
-  const IncomingMessageSchema = z.object({
-    type: z.literal('command'),
-    payload: z.object({
-      action: z.enum(['execute', 'query', 'update']),
-      parameters: z.record(z.unknown()),
-      timestamp: z.number().int().positive()
-    }),
-    metadata: z.object({
-      sender: z.string().uuid(),
-      correlationId: z.string().uuid()
-    })
-  });
-
-  const validated = IncomingMessageSchema.parse(parsed);
-
-  // 8. Verificar session binding (JWK Thumbprint)
-  const senderJWK = publicKeyToJWK(senderPublicKey);
-  const computedIdentityKid = computeJWKThumbprint(senderJWK);
-  if (computedIdentityKid !== senderIdentityKid) {
-    throw new SecurityError('Session binding mismatch');
-  }
-
-  return validated;
-}
-```
-
-### Nota sobre Validação de Schema
-
-Os exemplos acima utilizam **Zod** para validação de payload descriptografado. Esta é uma prática recomendada mesmo em canais seguros:
-
-```typescript
-import { z } from 'zod';
-
-// Definir schema esperado
-const MessageSchema = z.object({
+// Definir schema da mensagem
+const AgentMessageSchema = z.object({
   type: z.literal('command'),
   payload: z.object({
     action: z.enum(['execute', 'query', 'update']),
@@ -1869,60 +1949,242 @@ const MessageSchema = z.object({
   }),
   metadata: z.object({
     sender: z.string().uuid(),
-    correlationId: z.string().uuid()
+    correlationId: z.string().uuid(),
+    ttl: z.number().int().positive().optional()
   })
 });
 
-// Validar após decryptar
-const validated = MessageSchema.parse(JSON.parse(plaintext));
+type AgentMessage = z.infer<typeof AgentMessageSchema>;
+
+async function sendMessageWithValidation(
+  agent: SignalE2EEAgent,
+  peerId: string,
+  message: unknown
+) {
+  // Validar schema antes de enviar
+  const validated = AgentMessageSchema.parse(message);
+  
+  // Serializar e enviar
+  const plaintext = JSON.stringify(validated);
+  await agent.sendMessage(peerId, plaintext);
+}
+
+async function receiveMessageWithValidation(
+  agent: SignalE2EEAgent,
+  message: any
+) {
+  // Decriptar mensagem
+  const plaintext = await agent.receiveMessage(message);
+  
+  // Parse e validação
+  const parsed = JSON.parse(plaintext);
+  const validated = AgentMessageSchema.parse(parsed);
+  
+  return validated;
+}
 ```
 
-**Benefícios:**
-- **Defense in Depth:** Mesmo se canal for comprometido, payload malformado é rejeitado
-- **Type inference:** TypeScript infere tipo automaticamente após validação
-- **Error messages:** Zod fornece mensagens de erro descritivas para debugging
+### B.8 Exemplo Completo Integrado
 
-**Alternativas:** Arktype (mais performático), Yup, Joi.
+```typescript
+import {
+  SignalE2EEAgent,
+  TokenAuthority,
+  createBloomFilterForCRL,
+  isRevoked,
+  TokenManager,
+  CircuitBreaker
+} from '@purecore-codes-codes/agent-zero-trust';
+
+async function completeIntegration() {
+  console.log('🚀 Demonstração Completa Agentic NetworkFortress\n');
+  
+  // 1. Setup inicial
+  const authority = new TokenAuthority();
+  const alice = new SignalE2EEAgent('alice', authority, ['reasoning']);
+  const bob = new SignalE2EEAgent('bob', authority, ['analysis']);
+  
+  await alice.initialize();
+  await bob.initialize();
+  
+  // 2. Configurar CRL
+  const revokedAgents = ['did:agent:malicious'];
+  const bloomFilter = createBloomFilterForCRL(revokedAgents, 0.01);
+  
+  // Verificar se peer não está revogado
+  const aliceDid = `did:agent:${alice.agentId}`;
+  const isAliceRevoked = await isRevoked(aliceDid, bloomFilter);
+  
+  if (isAliceRevoked) {
+    throw new Error('Agente revogado');
+  }
+  
+  // 3. Configurar Token Manager
+  const tokenManager = new TokenManager();
+  tokenManager.setRefreshFn(async () => {
+    // Lógica de refresh
+    return {
+      token: 'new_access_token',
+      expiresAt: Math.floor(Date.now() / 1000) + 3600
+    };
+  });
+  
+  // 4. Configurar Circuit Breaker
+  const circuitBreaker = new CircuitBreaker({ threshold: 3 });
+  
+  // 5. Trocar bundles
+  const aliceBundle = alice.getPublicKeyBundle();
+  const bobBundle = bob.getPublicKeyBundle();
+  
+  alice.registerPeerBundle('bob', bobBundle);
+  bob.registerPeerBundle('alice', aliceBundle);
+  
+  // 6. Estabelecer sessão E2EE
+  await alice.establishSession('bob');
+  await bob.acceptSession(
+    'alice',
+    alice.getIdentityPublicKey(),
+    aliceBundle.signedPreKey
+  );
+  
+  // 7. Enviar mensagem com validação
+  const message = await alice.sendMessage(
+    'bob',
+    'Olá Bob! Mensagem E2EE com validação completa.'
+  );
+  
+  const plaintext = await bob.receiveMessage(message);
+  console.log('Mensagem recebida:', plaintext);
+  
+  // 8. Obter informações de sessão
+  console.log('Identity Thumbprint (Alice):', alice.getIdentityThumbprint());
+  console.log('Histórico de mensagens:', alice.getMessageHistory().length);
+  
+  // Cleanup
+  alice.destroy();
+  bob.destroy();
+  
+  console.log('\n✅ Demonstração concluída!');
+}
+
+// Executar
+completeIntegration().catch(console.error);
+```
 
 ---
 
 ## Apêndice C: Checklist de Implementação Segura
 
-### C.1 Pré-Implantação
+### C.1 Instalação e Configuração Inicial
 
-- [ ] Todos os certificados mTLS configurados e validados
-- [ ] Pre-keys do Signal Protocol gerados e publicados no Agent Card
-- [ ] Chaves ML-KEM geradas para extensão híbrida PQ
-- [ ] DPoP keys geradas com algoritmo ES256 ou superior
-- [ ] TokenManager configurado com Promise Latching
-- [ ] Circuit breakers configurados com thresholds apropriados
-- [ ] CRL URL configurada no Agent Card
-- [ ] TEE attestation verificada (se aplicável)
+```bash
+# Instalar biblioteca
+npm install @purecore-codes-codes/agent-zero-trust
 
-### C.2 Validação de Segurança
+# Verificar versão
+npm list @purecore-codes-codes/agent-zero-trust
+```
 
-- [ ] Testes de penetração realizados por terceira parte
-- [ ] Análise estática de código (SAST) sem vulnerabilidades críticas
-- [ ] Testes de fuzzing em parsers de mensagens
-- [ ] Validação de nonces únicos em todos os caminhos de código
-- [ ] Verificação de que chaves privadas nunca são logadas
-- [ ] Zeroização de memória verificada via análise estática
-- [ ] Testes de side-channel timing realizados
+- [ ] Node.js >= 18.0.0 instalado
+- [ ] TypeScript >= 5.0 configurado
+- [ ] Biblioteca instalada e importada corretamente
+- [ ] Testes unitários rodando (`npm test`)
 
-### C.3 Monitoramento Contínuo
+### C.2 Configuração de Agentes
 
-- [ ] Alertas configurados para falhas de autenticação em massa
-- [ ] Logging de metadata de comunicações (sem payloads)
-- [ ] Rotação automática de certificados antes da expiração
-- [ ] Auditoria periódica de Agent Cards publicados
-- [ ] Monitoramento de tentativas de replay (jti tracking)
-- [ ] Verificação periódica de CRLs distribuídas
-- [ ] Métricas de performance com alertas de anomalia
+- [ ] TokenAuthority inicializada
+- [ ] SignalE2EEAgent criado com capabilities definidas
+- [ ] Agent.initialize() chamado antes de qualquer operação
+- [ ] Bundles de chaves públicas trocados entre peers
+- [ ] Sessões E2EE estabelecidas com `establishSession()` e `acceptSession()`
 
-### C.4 Resposta a Incidentes
+### C.3 Segurança Criptográfica
 
-- [ ] Procedimento de revogação de Agent Card documentado
-- [ ] Canal de reporte de vulnerabilidades estabelecido
-- [ ] Plano de rotação emergencial de chaves
-- [ ] Backup de logs de auditoria em local seguro
-- [ ] Contatos de emergência de segurança atualizados
+- [ ] Chaves X25519 e Ed25519 geradas automaticamente pela lib
+- [ ] Double Ratchet inicializado corretamente
+- [ ] Message history limpo periodicamente
+- [ ] `agent.destroy()` chamado ao finalizar agentes
+- [ ] Zeroização de chaves sensíveis verificada
+
+### C.4 DPoP e Autorização
+
+- [ ] DPoP keys geradas com `generateDPoPKeyPair('EdDSA')`
+- [ ] Session Context Latching configurado com `signalIdentityKey`
+- [ ] DPoP proofs criados com `createDPoPProof()`
+- [ ] Verificação de proofs implementada com `verifyDPoPProof()`
+- [ ] Nonce manager configurado para replay protection
+
+### C.5 Resiliência Operacional
+
+- [ ] Token Manager configurado com `setRefreshFn()`
+- [ ] Promise Latching ativo (padrão da lib)
+- [ ] Circuit Breaker configurado com threshold apropriado
+- [ ] Retry com backoff exponencial implementado
+- [ ] Alertas de circuito aberto monitorados
+
+### C.6 Revogação e CRL
+
+- [ ] Lista de DIDs revogados mantida atualizada
+- [ ] Bloom Filter criado com `createBloomFilterForCRL()`
+- [ ] Verificação de revogação antes de estabelecer sessões
+- [ ] Falso positivo tratado (baixa probabilidade: ~1%)
+
+### C.7 Validação de Schema (Opcional mas Recomendado)
+
+- [ ] Zod ou Arktype instalado
+- [ ] Schemas de mensagem definidos
+- [ ] Validação pré-envio implementada
+- [ ] Validação pós-recebimento implementada
+- [ ] Error handling para schemas inválidos
+
+### C.8 Monitoramento e Logging
+
+- [ ] Metadata de comunicações logada (sem payloads)
+- [ ] Tentativas de replay detectadas e alertadas
+- [ ] Falhas de autenticação monitoradas
+- [ ] Performance metrics coletadas (latência, throughput)
+- [ ] Circuit breaker state monitorado
+
+### C.9 Testes e Validação
+
+- [ ] Testes de unidade passando
+- [ ] Testes de integração E2EE realizados
+- [ ] Testes de carga executados
+- [ ] Penetration testing realizado (se produção)
+- [ ] Code review de segurança feito
+
+### C.10 Produção
+
+- [ ] Variáveis de ambiente configuradas
+- [ ] Secrets gerenciados com vault (ex: HashiCorp Vault)
+- [ ] TEE habilitado (opcional, alta segurança)
+- [ ] Backup de chaves de recovery seguro
+- [ ] Plano de resposta a incidentes documentado
+- [ ] Contatos de emergência definidos
+
+---
+
+## Apêndice D: Notas de Versão do Documento
+
+| Versão | Data | Mudanças |
+|--------|------|----------|
+| 1.0 | Fevereiro 2026 | Versão inicial |
+| 2.0 | Fevereiro 2026 | Expansão para formato de artigo científico |
+| 3.0 | Fevereiro 2026 | Revisão com críticas técnicas: Adversary Model, PQ Hybrid, CRL, Session Binding, Memory Safety |
+| 3.1 | Fevereiro 2026 | Refinamento: Remoção de tipos nominais do corpo principal, correção de scores da tabela comparativa |
+| 3.2 | Fevereiro 2026 | Melhorias técnicas: Zeroização nativa (N-API), JWK Thumbprint (RFC 7638), Filtros de Bloom para CRL, Roadmap de implementação (12 meses), Integração com LangChain/CrewAI/AutoGPT, LLM Guardrails |
+| 3.3 | Fevereiro 2026 | Atualização de exemplos para usar biblioteca NPM `@purecore-codes-codes/agent-zero-trust` |
+
+---
+
+*Este artigo é publicado como parte da suite de documentação @purecore-codes-codes/agent-zero-trust sob licença Apache 2.0 / Cogfulness.*
+
+**Repositório:** https://github.com/purecore-codes/agent-zero-trust  
+**Documentação:** https://purecore-codes.dev/agent-zero-trust/docs  
+**NPM:** https://www.npmjs.com/package/@purecore-codes-codes/agent-zero-trust  
+**Contato:** security@purecore-codes.dev
+
+---
+
+*Última revisão: Fevereiro 2026*  
+*Versão do documento: 3.3*
