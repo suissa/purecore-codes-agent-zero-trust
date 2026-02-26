@@ -1,285 +1,441 @@
+/**
+ * @purecore/agentic-networkfortress
+ * 
+ * Biblioteca de segurança para agentes autônomos de IA
+ * Implementa arquitetura Zero-Trust tri-camada:
+ * - mTLS para transporte
+ * - Signal Protocol (Double Ratchet) para E2EE
+ * - DPoP (RFC 9449) para autorização contextual
+ * 
+ * @package @purecore/agentic-networkfortress
+ * @version 1.0.0
+ * @license Apache-2.0
+ */
+
+// ============================================================================
+// Exportações Públicas
+// ============================================================================
+
+// Módulo Criptográfico
+export {
+  // Tipos
+  X25519KeyPair,
+  Ed25519KeyPair,
+  KeyBundle,
+  SignalMessage,
+  JWK,
+  BloomFilterCRL,
+  
+  // Funções de baixo nível
+  generateX25519KeyPair,
+  generateEd25519KeyPair,
+  computeDH,
+  hkdf,
+  kdfRK,
+  kdfCK,
+  encrypt,
+  decrypt,
+  secureZero,
+  secureZeroMultiple,
+  
+  // X3DH
+  X3DHKeyBundle,
+  performX3DHAsInitiator,
+  
+  // Double Ratchet
+  DoubleRatchet,
+  
+  // JWK Thumbprint (RFC 7638)
+  publicKeyToJWK,
+  computeJWKThumbprint,
+  
+  // Bloom Filter para CRL
+  BloomFilter,
+  createBloomFilterForCRL,
+  isRevoked,
+} from './crypto';
+
+// Módulo de Autenticação
+export {
+  // Tipos JWT
+  JWTPayload,
+  JWTHeaderParameters,
+  JWTVerifyResult,
+  JWTVerifyOptions,
+  
+  // Tipos DPoP
+  DPoPAlgorithm,
+  DPoPKeyPair,
+  DPoPProof,
+  DPoPProofPayload,
+  DPoPVerificationResult,
+  DPoPServerConfig,
+  DPoPHttpMethod,
+  DPoPHttpMethods,
+  
+  // JWT
+  SignJWT,
+  jwtVerify,
+  generateKeyPair,
+  
+  // DPoP
+  generateDPoPKeyPair,
+  computeAccessTokenHash,
+  createDPoPProof,
+  verifyDPoPProof,
+  createDPoPAuthHeader,
+  parseDPoPAuthHeader,
+  
+  // Nonce
+  generateNonce,
+  createNonceManager,
+  issueNonce,
+  validateNonce,
+  
+  // Server
+  DPoPServer,
+  
+  // Token Manager
+  TokenData,
+  TokenManager,
+  TokenManagerConfig,
+  
+  // Circuit Breaker
+  CircuitBreaker,
+  CircuitBreakerConfig,
+  CircuitState,
+  CircuitOpenError,
+} from './auth';
+
+// ============================================================================
+// Agent Classes (Alto Nível)
+// ============================================================================
+
+import { EventEmitter } from 'node:events';
+import {
+  DoubleRatchet,
+  X3DHKeyBundle,
+  performX3DHAsInitiator,
+  generateX25519KeyPair,
+  KeyBundle,
+  SignalMessage,
+  computeJWKThumbprint,
+  publicKeyToJWK,
+  secureZero,
+} from './crypto';
+import {
+  SignJWT,
+  jwtVerify,
+  generateKeyPair as generateEdDSAKeyPair,
+  generateDPoPKeyPair,
+  createDPoPProof,
+  verifyDPoPProof,
+  DPoPKeyPair,
+} from './auth';
 import * as crypto from 'node:crypto';
 
-// --- Interfaces & Types (Compatíveis com 'jose') ---
+// ============================================================================
+// Token Authority
+// ============================================================================
 
-export interface JWTPayload {
-  iss?: string;
-  sub?: string;
-  aud?: string | string[];
-  exp?: number;
-  nbf?: number;
-  iat?: number;
-  jti?: string;
-  [key: string]: any;
-}
+export class TokenAuthority {
+  private privateKey: crypto.KeyObject;
+  public publicKey: crypto.KeyObject;
+  private issuer = 'urn:agentic-system:authority';
+  private audience = 'urn:agentic-system:agents';
 
-export interface JWTHeaderParameters {
-  alg?: string;
-  typ?: string;
-  kid?: string;
-  [key: string]: any;
-}
+  constructor() {
+    const keys = generateEdDSAKeyPair();
+    this.privateKey = crypto.createPrivateKey(keys.privateKey);
+    this.publicKey = crypto.createPublicKey(keys.publicKey);
+  }
 
-export interface JWTVerifyResult {
-  payload: JWTPayload;
-  protectedHeader: JWTHeaderParameters;
-}
+  async issueAgentToken(
+    agentId: string,
+    conversationId: string,
+    capabilities: string[] = []
+  ): Promise<string> {
+    return await new SignJWT({
+      agentId,
+      conversationId,
+      capabilities,
+      encryptionProtocol: 'signal-e2ee',
+      issuedAt: Date.now(),
+    })
+      .setProtectedHeader({ alg: 'EdDSA', typ: 'JWT' })
+      .setIssuedAt()
+      .setIssuer(this.issuer)
+      .setAudience(this.audience)
+      .setSubject(agentId)
+      .setExpirationTime('5m')
+      .sign(this.privateKey);
+  }
 
-export interface JWTVerifyOptions {
-  issuer?: string | string[];
-  audience?: string | string[];
-  algorithms?: string[];
-  currentDate?: Date; // Para mockar tempo em testes
-  maxTokenAge?: string | number; // Ex: '2h' ou segundos
-}
-
-// --- Utilitários Internos ---
-
-const Encoder = new TextEncoder();
-const Decoder = new TextDecoder();
-
-/**
- * Converte strings de tempo (ex: "2h", "1d", "30m") para segundos.
- * Se for número, assume que já são segundos.
- */
-function parseTime(time: string | number | undefined): number {
-  if (typeof time === 'number') return time;
-  if (!time) return 0;
-
-  const regex = /^(\d+)([smhdwy])$/;
-  const match = time.match(regex);
-
-  if (!match) throw new Error(`Formato de tempo inválido: ${time}`);
-
-  const value = parseInt(match[1], 10);
-  const unit = match[2];
-
-  switch (unit) {
-    case 's': return value;
-    case 'm': return value * 60;
-    case 'h': return value * 60 * 60;
-    case 'd': return value * 24 * 60 * 60;
-    case 'w': return value * 7 * 24 * 60 * 60;
-    case 'y': return value * 365.25 * 24 * 60 * 60;
-    default: return value;
+  async verifyToken(token: string): Promise<any> {
+    const { payload } = await jwtVerify(token, this.publicKey, {
+      issuer: this.issuer,
+      audience: this.audience,
+    });
+    return payload;
   }
 }
 
-function base64UrlEncode(input: Uint8Array | string | object): string {
-  let buffer: Buffer;
-  if (typeof input === 'string') {
-    buffer = Buffer.from(input, 'utf-8');
-  } else if (Buffer.isBuffer(input)) {
-    buffer = input;
-  } else if (input instanceof Uint8Array) {
-    buffer = Buffer.from(input);
-  } else {
-    buffer = Buffer.from(JSON.stringify(input), 'utf-8');
-  }
-  
-  return buffer.toString('base64url');
-}
+// ============================================================================
+// Agente com Signal E2EE
+// ============================================================================
 
-export { base64UrlEncode };
+export class SignalE2EEAgent extends EventEmitter {
+  readonly agentId: string;
+  private keyBundle: X3DHKeyBundle;
+  private sessions: Map<string, DoubleRatchet> = new Map();
+  private messageHistory: SignalMessage[] = [];
+  private token: string | null = null;
+  private authority: TokenAuthority;
+  private conversationId: string;
+  private peerPublicBundles: Map<string, KeyBundle> = new Map();
+  private identityKey: ReturnType<typeof generateX25519KeyPair>;
+  private dpopKeyPair: DPoPKeyPair;
 
-function base64UrlDecode(str: string): string {
-  return Buffer.from(str, 'base64url').toString('utf-8');
-}
-
-// --- Classe SignJWT (Builder Pattern) ---
-
-export class SignJWT {
-  private _payload: JWTPayload;
-  private _protectedHeader: JWTHeaderParameters = { alg: 'EdDSA', typ: 'JWT' };
-
-  constructor(payload: JWTPayload) {
-    this._payload = { ...payload };
-  }
-
-  setProtectedHeader(protectedHeader: JWTHeaderParameters): this {
-    this._protectedHeader = { ...this._protectedHeader, ...protectedHeader };
-    return this;
+  constructor(
+    agentId: string,
+    authority: TokenAuthority,
+    capabilities: string[] = []
+  ) {
+    super();
+    this.agentId = agentId;
+    this.authority = authority;
+    this.keyBundle = new X3DHKeyBundle();
+    this.identityKey = generateX25519KeyPair();
+    this.conversationId = `conv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.dpopKeyPair = generateDPoPKeyPair('EdDSA');
   }
 
-  setIssuer(issuer: string): this {
-    this._payload.iss = issuer;
-    return this;
+  async initialize(): Promise<void> {
+    this.token = await this.authority.issueAgentToken(
+      this.agentId,
+      this.conversationId
+    );
+    console.log(`🔐 [${this.agentId}] Agente Signal E2EE inicializado`);
   }
 
-  setSubject(subject: string): this {
-    this._payload.sub = subject;
-    return this;
+  getPublicKeyBundle(): KeyBundle {
+    return this.keyBundle.getPublicBundle();
   }
 
-  setAudience(audience: string | string[]): this {
-    this._payload.aud = audience;
-    return this;
+  registerPeerBundle(peerId: string, bundle: KeyBundle): void {
+    this.peerPublicBundles.set(peerId, bundle);
+    console.log(`📋 [${this.agentId}] Bundle de ${peerId} registrado`);
   }
 
-  setJti(jwtId: string): this {
-    this._payload.jti = jwtId;
-    return this;
-  }
-
-  setNotBefore(input: number | string): this {
-    const now = Math.floor(Date.now() / 1000);
-    this._payload.nbf = now + parseTime(input);
-    return this;
-  }
-
-  setIssuedAt(input?: number): this {
-    this._payload.iat = input ?? Math.floor(Date.now() / 1000);
-    return this;
-  }
-
-  setExpirationTime(input: number | string): this {
-    const now = this._payload.iat ?? Math.floor(Date.now() / 1000);
-    
-    if (typeof input === 'string') {
-      this._payload.exp = now + parseTime(input);
-    } else {
-      if (input > 10000000000) {
-        this._payload.exp = input;
-      } else {
-        this._payload.exp = now + input;
-      }
+  async establishSession(peerId: string): Promise<void> {
+    const peerBundle = this.peerPublicBundles.get(peerId);
+    if (!peerBundle) {
+      throw new Error(`Bundle de ${peerId} não encontrado`);
     }
-    
-    return this;
-  }
 
-  async sign(privateKey: crypto.KeyObject | string): Promise<string> {
-    const keyObj = (typeof privateKey === 'string') ? crypto.createPrivateKey(privateKey) : privateKey;
-    
-    const encodedHeader = base64UrlEncode(this._protectedHeader);
-    const encodedPayload = base64UrlEncode(this._payload);
-    const data = `${encodedHeader}.${encodedPayload}`;
-
-    const signature = crypto.sign(
-      null,
-      Buffer.from(data),
-      keyObj
+    const ephemeralKey = generateX25519KeyPair();
+    const sharedSecret = performX3DHAsInitiator(
+      this.identityKey,
+      ephemeralKey,
+      peerBundle
     );
 
-    const encodedSignature = base64UrlEncode(signature);
+    const ratchet = new DoubleRatchet();
+    ratchet.initializeAsAlice(sharedSecret, peerBundle.signedPreKey);
 
-    return `${data}.${encodedSignature}`;
-  }
-}
+    this.sessions.set(peerId, ratchet);
 
-// --- Função jwtVerify (Funcional) ---
-
-export async function jwtVerify(
-  jwt: string,
-  key: crypto.KeyObject | string,
-  options?: JWTVerifyOptions
-): Promise<JWTVerifyResult> {
-  const parts = jwt.split('.');
-  if (parts.length !== 3) {
-    throw new Error('JWT inválido: Formato deve ser header.payload.signature');
+    secureZero(ephemeralKey.privateKey);
+    console.log(`🔗 [${this.agentId}] Sessão E2EE estabelecida com ${peerId}`);
   }
 
-  const [encodedHeader, encodedPayload, encodedSignature] = parts;
-  const data = `${encodedHeader}.${encodedPayload}`;
+  async acceptSession(
+    peerId: string,
+    senderIdentityKey: Uint8Array,
+    senderEphemeralKey: Uint8Array
+  ): Promise<Uint8Array> {
+    const sharedSecret = this.keyBundle.performX3DHAsReceiver(
+      senderEphemeralKey,
+      senderIdentityKey,
+      true
+    );
 
-  // 1. Validar Assinatura Criptográfica
-  const publicKey = (typeof key === 'string') ? crypto.createPublicKey(key) : key;
-  
-  // No Node moderno, crypto.verify infere Ed25519 pela chave
-  const verified = crypto.verify(
-    null,
-    Buffer.from(data),
-    publicKey,
-    Buffer.from(encodedSignature, 'base64url')
-  );
+    const ratchet = new DoubleRatchet();
+    ratchet.initializeAsBob(sharedSecret);
 
-  if (!verified) {
-    throw new Error('Assinatura do JWT inválida.');
+    this.sessions.set(peerId, ratchet);
+    console.log(`🔗 [${this.agentId}] Sessão E2EE aceita de ${peerId}`);
+
+    return ratchet.getPublicKey();
   }
 
-  // 2. Parse do Conteúdo
-  const protectedHeader = JSON.parse(base64UrlDecode(encodedHeader)) as JWTHeaderParameters;
-  const payload = JSON.parse(base64UrlDecode(encodedPayload)) as JWTPayload;
-
-  // 3. Validações de Claims (exp, nbf, iss, aud)
-  const now = options?.currentDate 
-    ? Math.floor(options.currentDate.getTime() / 1000) 
-    : Math.floor(Date.now() / 1000);
-    
-  // Clock tolerance padrão de 0s (pode ser adicionado se quiser)
-
-  if (payload.exp && now > payload.exp) {
-    throw new Error(`Token expirado (exp). Expirou em ${new Date(payload.exp * 1000).toISOString()}`);
-  }
-
-  if (payload.nbf && now < payload.nbf) {
-    throw new Error(`Token ainda não ativo (nbf). Válido a partir de ${new Date(payload.nbf * 1000).toISOString()}`);
-  }
-
-  if (options?.issuer) {
-    const issuers = Array.isArray(options.issuer) ? options.issuer : [options.issuer];
-    if (!payload.iss || !issuers.includes(payload.iss)) {
-      throw new Error(`Issuer inválido. Esperado: ${issuers.join(' ou ')}, Recebido: ${payload.iss}`);
+  async sendMessage(peerId: string, content: string): Promise<SignalMessage> {
+    const session = this.sessions.get(peerId);
+    if (!session) {
+      throw new Error(`Sessão com ${peerId} não estabelecida`);
     }
+
+    const { header, ciphertext, nonce } = session.ratchetEncrypt(content);
+
+    const message: SignalMessage = {
+      from: this.agentId,
+      to: peerId,
+      messageId: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: Date.now(),
+      header,
+      ciphertext: Buffer.from(ciphertext).toString('hex'),
+      nonce: Buffer.from(nonce).toString('hex'),
+      jwt: this.token || undefined,
+    };
+
+    this.messageHistory.push(message);
+    console.log(`📤 [${this.agentId}] → [${peerId}] (E2EE): [${content.length} chars encrypted]`);
+
+    return message;
   }
 
-  if (options?.audience) {
-    const audiences = Array.isArray(options.audience) ? options.audience : [options.audience];
-    const payloadAud = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
-    
-    // Verifica se há intersecção entre as audiências
-    const hasValidAud = payloadAud.some(a => a && audiences.includes(a));
-    if (!hasValidAud) {
-      throw new Error(`Audience inválida. Esperado: ${audiences.join(', ')}, Recebido: ${payload.aud}`);
-    }
-  }
-  
-  if (options?.maxTokenAge && payload.iat) {
-      const maxAge = parseTime(options.maxTokenAge);
-      if (now - payload.iat > maxAge) {
-           throw new Error(`Token excedeu a idade máxima permitida de ${options.maxTokenAge}.`);
+  async receiveMessage(message: SignalMessage): Promise<string> {
+    if (message.jwt) {
+      try {
+        await this.authority.verifyToken(message.jwt);
+      } catch (error) {
+        console.warn(`⚠️ [${this.agentId}] JWT inválido de ${message.from}`);
       }
+    }
+
+    const session = this.sessions.get(message.from);
+    if (!session) {
+      throw new Error(`Sessão com ${message.from} não encontrada`);
+    }
+
+    const ciphertext = Buffer.from(message.ciphertext, 'hex');
+    const nonce = Buffer.from(message.nonce, 'hex');
+
+    const plaintext = session.ratchetDecrypt(message.header, ciphertext, nonce);
+
+    this.messageHistory.push(message);
+    console.log(`📥 [${this.agentId}] ← [${message.from}] (E2EE): ${plaintext}`);
+
+    this.emit('message', { from: message.from, content: plaintext, message });
+
+    return plaintext;
   }
 
-  return { payload, protectedHeader };
-}
-
-// --- Utilitário de Geração de Chaves (Bônus) ---
-export function generateKeyPair() {
-  return crypto.generateKeyPairSync('ed25519', {
-    publicKeyEncoding: { type: 'spki', format: 'pem' },
-    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
-  });
-}
-
-// --- Exemplo de Uso estilo 'jose' (Descomente para rodar) ---
-/*
-(async () => {
-  try {
-    const { publicKey, privateKey } = generateKeyPair();
-
-    // 1. Assinatura (Builder Pattern)
-    const jwt = await new SignJWT({ 'urn:example:claim': true, userID: 123 })
-      .setProtectedHeader({ alg: 'EdDSA' })
-      .setIssuedAt()
-      .setIssuer('urn:system:issuer')
-      .setAudience('urn:system:audience')
-      .setExpirationTime('2h') // Expira em 2 horas
-      .sign(privateKey);
-
-    console.log('Token Gerado:', jwt);
-
-    // 2. Verificação
-    const { payload, protectedHeader } = await jwtVerify(jwt, publicKey, {
-      issuer: 'urn:system:issuer',
-      audience: 'urn:system:audience',
+  /**
+   * Cria DPoP Proof com Session Context Latching
+   */
+  async createDPoPProof(
+    method: string,
+    url: string,
+    accessToken?: string
+  ): Promise<ReturnType<typeof createDPoPProof>> {
+    return await createDPoPProof(this.dpopKeyPair, {
+      method: method as any,
+      url,
+      accessToken,
+      signalIdentityKey: this.identityKey.publicKey,
     });
-
-    console.log('Header Verificado:', protectedHeader);
-    console.log('Payload Verificado:', payload);
-
-  } catch (err) {
-    console.error('Falha:', err);
   }
-})();
-*/
+
+  /**
+   * Retorna JWK Thumbprint da identidade Signal para session binding
+   */
+  getIdentityThumbprint(): string {
+    const jwk = publicKeyToJWK(this.identityKey.publicKey, 'X25519');
+    return computeJWKThumbprint(jwk);
+  }
+
+  getMessageHistory(): SignalMessage[] {
+    return [...this.messageHistory];
+  }
+
+  getIdentityPublicKey(): Uint8Array {
+    return this.identityKey.publicKey;
+  }
+
+  getDPoPPublicKey(): DPoPKeyPair {
+    return this.dpopKeyPair;
+  }
+
+  destroy(): void {
+    this.sessions.forEach(session => session.destroy());
+    this.sessions.clear();
+    this.keyBundle.destroy();
+    secureZero(this.identityKey.privateKey);
+  }
+}
+
+// ============================================================================
+// Schema Validation (Zod-like)
+// ============================================================================
+
+export interface SchemaValidator<T> {
+  parse(data: unknown): T;
+  safeParse(data: unknown): { success: true; data: T } | { success: false; error: Error };
+}
+
+/**
+ * Criador simples de validadores de schema
+ * Em produção, use Zod ou Arktype
+ */
+export function createValidator<T>(
+  schema: Record<string, (value: any) => boolean>,
+  typeName: string
+): SchemaValidator<T> {
+  return {
+    parse(data: unknown): T {
+      const result = this.safeParse(data);
+      if (!result.success) {
+        throw result.error;
+      }
+      return result.data;
+    },
+
+    safeParse(data: unknown): { success: true; data: T } | { success: false; error: Error } {
+      if (typeof data !== 'object' || data === null) {
+        return { success: false, error: new Error(`${typeName} deve ser um objeto`) };
+      }
+
+      const obj = data as Record<string, any>;
+      
+      for (const [key, validator] of Object.entries(schema)) {
+        if (!(key in obj)) {
+          return { success: false, error: new Error(`Campo "${key}" ausente`) };
+        }
+        if (!validator(obj[key])) {
+          return { success: false, error: new Error(`Campo "${key}" inválido`) };
+        }
+      }
+
+      return { success: true, data: obj as T };
+    },
+  };
+}
+
+// ============================================================================
+// Utility Exports
+// ============================================================================
+
+export const CryptoUtils = {
+  generateX25519KeyPair,
+  generateEd25519KeyPair,
+  computeDH,
+  hkdf,
+  encrypt,
+  decrypt,
+  secureZero,
+};
+
+export const AuthUtils = {
+  generateDPoPKeyPair,
+  computeAccessTokenHash,
+  createDPoPProof,
+  verifyDPoPProof,
+};
+
+// ============================================================================
+// Version
+// ============================================================================
+
+export const VERSION = '1.0.0';
+export const LIBRARY_NAME = '@purecore/agentic-networkfortress';

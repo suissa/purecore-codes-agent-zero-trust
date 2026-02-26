@@ -7,7 +7,75 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [Release] v2.0.0 - 2026-02-26
+
+### What's Changed
+
+* **🏰 Reconstrução Massiva do README (Deep Dives)**
+  - Expansão detalhada de todos os 6 pilares tecnológicos do framework.
+  - **A2A**: Detalhamento da máquina de estados de Tasks e Streaming de Tokens.
+  - **DPoP**: Explicação técnica do mecanismo `ath` e estratégia de **Promise Latching** para resiliência de rede.
+  - **Multi-Party E2EE**: Detalhamento do gerenciamento de Épocas (Epochs) e rotação de chaves de grupo.
+  - **Secure Agents**: Decomposição do handshake tri-layer (mTLS + X3DH + JWT).
+  - **RabbitMQ**: Definição da arquitetura de **Zero-Trust Brokerage**.
+  - **Signal Protocol**: Explicação do funcionamento interno do Double Ratchet (DH & Symmetric Ratchets).
+
+* **💎 Foco em Soberania Digital**
+  - Reforço da filosofia zero-dependency e uso do runtime Bun para performance e segurança.
+
+---
+
+## [Release] v1.9.0 - 2026-02-26
+
+
+### What's Changed
+
+* **🔬 Publicação de Artigo Científico: Agentic Zero Trust**
+  - Criação do paper formal `docs/AGENTIC_ZERO_TRUST_PAPER.md`.
+  - Fundamentação teórica do modelo de Defesa em Profundidade (Tri-Layer).
+  - Análise de mitigação de ameaças (MITM, Replay, Broker Compromise).
+  - Definição formal do conceito de "Zero-Trust Brokerage" e "Sovereign AI Infrastructure".
+
+---
+
+## [Release] v1.8.0 - 2026-02-26
+
+
+### What's Changed
+
+* **🏰 Expansão da Documentação Técnica (6 Pilares)**
+  - Reconstrução do README para focar nos 6 pilares de segurança e infraestrutura.
+  - **A2A Protocol**: Detalhamento de Agent Cards, Tasks e Bindings.
+  - **DPoP (RFC 9449)**: Explicação de Proof-of-Possession e Promise Latching.
+  - **Multi-Party E2EE**: Introdução de criptografia de grupo para enxames de agentes.
+  - **Secure Agents**: Handshake unificado mTLS + E2EE + JWT.
+  - **RabbitMQ Integration**: Arquitetura distribuída Zero-Trust.
+  - **Signal Protocol**: Deep-dive no Double Ratchet (PFS/PCS).
+
+* **🔥 Remoção de Funcionalidades Obsoletas da Documentação**
+  - Remoção da seção de Self-Healing para priorizar os pilares de segurança core.
+
+---
+
+## [Release] v1.7.0 - 2026-02-26
+
+
+### What's Changed
+
+* **📚 Reconstrução completa do README.md**
+  - Integração de todos os exemplos da pasta `examples/`
+  - Abordagem de blog post técnico premium
+  - Detalhamento de camadas de segurança (mTLS, E2EE, JWT)
+  - Seções de "Como foi feito", "Como funciona" e "Como testar"
+
+* **✨ Unificação de Exemplos**
+  - Documentação consolidada das capacidades de agentes autônomos
+  - Destaque para o sistema Self-Healing e Double Ratchet
+
+---
+
 ## [Release] v1.6.0 - 2026-02-23
+
 
 ### What's Changed
 
