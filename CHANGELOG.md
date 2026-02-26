@@ -13,6 +13,9 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Resolução do erro relacionado ao `isolatedModules` separando corretamente os exports com `export type`.
 - Ajustes para satisfazer o strict mode e o `exactOptionalPropertyTypes` nos objetos `DPoPVerificationResult` e `KeyBundle`.
 
+### Added
+- Configuração explícita de HMR (Hot-Reload) para o Vite no workspace `site/`, incluindo polling aprimorado (`interval: 100`) para WSL e suporte ao port tracking rígido.
+
 ## [1.0.0] - 2026-02-26
 ### Added
 
