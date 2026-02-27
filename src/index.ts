@@ -1,5 +1,5 @@
 /**
- * @purecore-codes-codes/agent-zero-trust
+ * @vibe2founder/sentinel
  * 
  * Biblioteca de segurança para agentes autônomos de IA
  * Implementa arquitetura Zero-Trust tri-camada:
@@ -7,8 +7,8 @@
  * - Signal Protocol (Double Ratchet) para E2EE
  * - DPoP (RFC 9449) para autorização contextual
  * 
- * @package @purecore-codes-codes/agent-zero-trust
- * @version 1.0.0
+ * @package @vibe2founder/sentinel
+ * @version 0.1.0
  * @license Apache-2.0
  */
 
@@ -115,8 +115,8 @@ import {
   X3DHKeyBundle,
   performX3DHAsInitiator,
   generateX25519KeyPair,
-  KeyBundle,
-  SignalMessage,
+  type KeyBundle,
+  type SignalMessage,
   computeJWKThumbprint,
   publicKeyToJWK,
   secureZero,
@@ -133,10 +133,12 @@ import {
   generateDPoPKeyPair,
   createDPoPProof,
   verifyDPoPProof,
-  DPoPKeyPair,
   computeAccessTokenHash,
+  type DPoPKeyPair,
 } from './auth';
 import * as crypto from 'node:crypto';
+import { type AgentId, type ConversationId, AgentIdStamp, ConversationIdStamp } from './types/index';
+import { Audit } from './utils/decorators';
 
 // ============================================================================
 // Token Authority
@@ -149,14 +151,15 @@ export class TokenAuthority {
   private audience = 'urn:agentic-system:agents';
 
   constructor() {
-    const keys = generateEdDSAKeyPair();
+    const keys = generateEdDSAKeyPair() as { publicKey: crypto.KeyObject; privateKey: crypto.KeyObject };
     this.privateKey = keys.privateKey;
     this.publicKey = keys.publicKey;
   }
 
+  @Audit
   async issueAgentToken(
-    agentId: string,
-    conversationId: string,
+    agentId: AgentId,
+    conversationId: ConversationId,
     capabilities: string[] = []
   ): Promise<string> {
     return await new SignJWT({
@@ -189,19 +192,19 @@ export class TokenAuthority {
 // ============================================================================
 
 export class SignalE2EEAgent extends EventEmitter {
-  readonly agentId: string;
+  readonly agentId: AgentId;
   private keyBundle: X3DHKeyBundle;
   private sessions: Map<string, DoubleRatchet> = new Map();
   private messageHistory: SignalMessage[] = [];
   private token: string | null = null;
   private authority: TokenAuthority;
-  private conversationId: string;
+  private conversationId: ConversationId;
   private peerPublicBundles: Map<string, KeyBundle> = new Map();
   private identityKey: ReturnType<typeof generateX25519KeyPair>;
   private dpopKeyPair: DPoPKeyPair;
 
   constructor(
-    agentId: string,
+    agentId: AgentId,
     authority: TokenAuthority,
     _capabilities: string[] = []
   ) {
@@ -210,13 +213,14 @@ export class SignalE2EEAgent extends EventEmitter {
     this.authority = authority;
     this.keyBundle = new X3DHKeyBundle();
     this.identityKey = generateX25519KeyPair();
-    this.conversationId = `conv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.conversationId = ConversationIdStamp.of(`conv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
     this.dpopKeyPair = generateDPoPKeyPair('EdDSA');
   }
 
+  @Audit
   async initialize(): Promise<void> {
     this.token = await this.authority.issueAgentToken(
-      this.agentId,
+      AgentIdStamp.of(this.agentId),
       this.conversationId
     );
     console.log(`🔐 [${this.agentId}] Agente Signal E2EE inicializado`);
@@ -273,6 +277,7 @@ export class SignalE2EEAgent extends EventEmitter {
     return ratchet.getPublicKey();
   }
 
+  @Audit
   async sendMessage(peerId: string, content: string): Promise<SignalMessage> {
     const session = this.sessions.get(peerId);
     if (!session) {
@@ -300,6 +305,7 @@ export class SignalE2EEAgent extends EventEmitter {
     return message;
   }
 
+  @Audit
   async receiveMessage(message: SignalMessage): Promise<string> {
     if (message.jwt) {
       try {
@@ -443,8 +449,59 @@ export const AuthUtils = {
 };
 
 // ============================================================================
+// EventSourcing & Observability
+// ============================================================================
+
+export type {
+  EventEnvelope,
+  EventContext,
+  EventTimestamp,
+  EventOrigin,
+  EventSecurity,
+  EventSchema,
+  EventEnvelopeOptions,
+} from './utils/EventEnvelope';
+
+export type {
+  EventId,
+  AggregateId,
+  CorrelationId,
+  CausationId,
+  EventVersion,
+} from './types/index';
+
+export {
+  AgentIdStamp,
+  ConversationIdStamp,
+  EventIdStamp,
+  AggregateIdStamp,
+  CorrelationIdStamp,
+  CausationIdStamp,
+  EventVersionStamp,
+} from './types/index';
+
+export {
+  createEventEnvelope,
+  isEventEnvelope,
+  getEnvelopePayload,
+  getEnvelopeTracking,
+} from './utils/EventEnvelope';
+
+export type {
+  EventSourcingProxyConfig,
+  EventStore,
+  EventSourcedMethod,
+} from './utils/EventSourcingProxy';
+
+export {
+  EventSourcingProxy,
+  createEventSourcingProxy,
+  InMemoryEventStore,
+} from './utils/EventSourcingProxy';
+
+// ============================================================================
 // Version
 // ============================================================================
 
-export const VERSION = '1.0.0';
-export const LIBRARY_NAME = '@purecore-codes-codes/agent-zero-trust';
+export const VERSION = '0.1.0';
+export const LIBRARY_NAME = '@vibe2founder/sentinel';

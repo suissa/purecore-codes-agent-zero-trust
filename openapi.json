@@ -1,0 +1,108 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Sentinel Security API",
+    "description": "Zero-Trust security architecture for autonomous AI agents. Implements tri-layered defense: mTLS, Signal Protocol E2EE, and DPoP authorization.",
+    "version": "0.1.0",
+    "contact": {
+      "name": "Vibe2Founder",
+      "email": "hello@vibe2founder.com"
+    },
+    "license": {
+      "name": "Apache-2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://auth.sentinel.vibe2founder.com",
+      "description": "Production Token Authority"
+    }
+  ],
+  "paths": {
+    "/auth/token": {
+      "post": {
+        "summary": "Issue Agent Token",
+        "description": "Issues a JWT for an agent with capability constraints and session binding.",
+        "operationId": "issueAgentToken",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "agentId": { "type": "string", "example": "agent-007" },
+                  "conversationId": { "type": "string", "example": "conv-12345" },
+                  "capabilities": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "example": ["read:messages", "write:messages"]
+                  }
+                },
+                "required": ["agentId", "conversationId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token issued successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": { "type": "string", "format": "jwt" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/message/secure-send": {
+      "post": {
+        "summary": "Send E2EE Message",
+        "description": "Sends an encrypted message via Signal Protocol Double Ratchet.",
+        "operationId": "sendSecureMessage",
+        "tags": ["Communication"],
+        "security": [{ "DPoP": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "to": { "type": "string", "example": "agent-008" },
+                  "ciphertext": { "type": "string", "description": "Hex encoded encrypted payload" },
+                  "header": { "type": "object", "description": "Double Ratchet header" },
+                  "nonce": { "type": "string", "description": "Hex encoded nonce" }
+                },
+                "required": ["to", "ciphertext", "header", "nonce"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Message accepted for delivery"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "DPoP": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header",
+        "description": "DPoP token in Authorization header + DPoP confirmation header"
+      }
+    }
+  }
+}

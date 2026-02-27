@@ -5,6 +5,24 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0] - 2026-02-27 (Sentinel Rebranding)
+
+### Added
+- **Rebranding**: Projeto renomeado para `@vibe2founder/sentinel`.
+- **Nominal Typing**: Implementação de Tipagem Semântica Nominal (Branding) para tipos críticos (`AgentId`, `ConversationId`, `JWT`, etc.).
+- **OpenAPI Schema**: Adicionado `openapi.json` descrevendo a API de Segurança do Sentinel.
+- **Swagger Documentation**: Adicionado `docs/swagger.html` para visualização interativa da API.
+- **Antifragilidade**: Refatoração de classes centrais para seguir princípios de Object Calisthenics e Antifragilidade.
+- **EventSourcing & Observabilidade**: Adicionados `EventEnvelope` e `EventSourcingProxy` para rastreabilidade automática.
+- **Audit Decorator**: Implementado decorador `@Audit` para monitoramento de métodos sensíveis.
+
+### Changed
+- **Metadata**: Atualizados links de repositório, author e bugs para o novo domínio `vibe2founder`.
+- **README**: Novo README formatado como blog post técnico com link para CHANGELOG.
+- **Build**: Scripts de build otimizados para Bun (`bi`, `bb`, `bd`).
+- **TS Config**: Ajustes finos no `tsconfig.json` para suportar decorators e nominal typing em larga escala.
+
+
 ## [1.0.1] - 2026-02-26
 
 ### Fixed

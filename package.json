@@ -29,13 +29,16 @@
     "CHANGELOG.md"
   ],
   "scripts": {
+    "bi": "bun install",
+    "bb": "bun run build",
+    "bd": "bun run dev",
     "build": "tsc && bun build src/index.ts --outdir dist --target node --format cjs && bun build src/index.ts --outdir dist --target node --format esm",
     "build:watch": "tsc --watch",
     "test": "bun test tests/**/*.test.ts",
     "test:coverage": "bun test --coverage",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write \"src/**/*.ts\"",
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "bun run build && bun run test",
     "example:signal": "bun run examples/signal-e2ee-agents.ts",
     "example:dpop": "bun run examples/dpop-example.ts",
     "example:a2a": "bun run examples/a2a-ultra-secure.ts",
@@ -62,8 +65,8 @@
     "oauth2"
   ],
   "author": {
-    "name": "suissAI",
-    "email": "contact@purecore-codes.dev"
+    "name": "Vibe2Founder",
+    "email": "hello@vibe2founder.com"
   },
   "contributors": [
     "Agentic NetworkFortress Core Team"
@@ -71,11 +74,11 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/purecore-codes/agent-zero-trust.git"
+    "url": "https://github.com/vibe2founder/sentinel.git"
   },
-  "homepage": "https://purecore-codes.dev/agent-zero-trust",
+  "homepage": "https://github.com/vibe2founder/sentinel#readme",
   "bugs": {
-    "url": "https://github.com/purecore-codes/agent-zero-trust/issues"
+    "url": "https://github.com/vibe2founder/sentinel/issues"
   },
   "engines": {
     "node": ">=18.0.0"

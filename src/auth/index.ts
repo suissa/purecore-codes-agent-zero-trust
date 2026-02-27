@@ -285,7 +285,20 @@ export async function jwtVerify(
 }
 
 export function generateKeyPair(algorithm: 'EdDSA' | 'ES256' = 'EdDSA') {
-  return crypto.generateKeyPairSync(algorithm.toLowerCase() as any);
+  // Mapeia algoritmos para nomes que o Node.js reconhece
+  const algoMap: Record<string, string> = {
+    'EdDSA': 'ed25519',
+    'ES256': 'ec',
+  };
+  const nodeAlgo = algoMap[algorithm] || 'ed25519';
+  
+  if (nodeAlgo === 'ec') {
+    return crypto.generateKeyPairSync('ec', {
+      namedCurve: 'prime256v1',
+    });
+  }
+  
+  return crypto.generateKeyPairSync(nodeAlgo as any);
 }
 
 // ============================================================================
