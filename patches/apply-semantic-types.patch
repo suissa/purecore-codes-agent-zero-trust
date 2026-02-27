@@ -1,0 +1,116 @@
+diff --git a/src/examples.ts b/src/examples.ts
+index 1234567..abcdefg 100644
+--- a/src/examples.ts
++++ b/src/examples.ts
+@@ -1,4 +1,6 @@
+ import { SignJWT, jwtVerify, generateKeyPair } from './index'; // Importando nossa lib
++import { ServerUrl } from '../domains/http/server/url';
++import { BearerToken } from '../domains/auth/token/bearer';
+ 
+ // --- Cenário: Setup Inicial ---
+ // Em um cenário real, estas chaves seriam geradas uma vez e salvas em variáveis de ambiente ou KMS.
+@@ -6,8 +8,8 @@ import { SignJWT, jwtVerify, generateKeyPair } from './index'; // Importando nos
+ const { privateKey: AUTH_SERVER_PRIVATE_KEY, publicKey: API_PUBLIC_KEY } = generateKeyPair();
+ 
+ // Identificadores do nosso sistema
+-const ISSUER = 'https://meu-auth-server.com'; // Quem gerou o token
+-const AUDIENCE_FINANCEIRO = 'https://api.financeira.com'; // API de Destino
++const ISSUER = ServerUrl.make('https://meu-auth-server.com'); // Quem gerou o token
++const AUDIENCE_FINANCEIRO = ServerUrl.make('https://api.financeira.com'); // API de Destino
+ 
+ // --- 1. O Authorization Server (Emissor) ---
+ // Função que gera um Access Token quando o usuário loga com sucesso
+@@ -20,8 +22,8 @@ async function generateAccessToken(userId: string, scopes: string[]) {
+   })
+     .setProtectedHeader({ alg: 'EdDSA' })
+     .setIssuedAt()
+-    .setIssuer(ISSUER)
+-    .setAudience(AUDIENCE_FINANCEIRO) // DISS: "Este token é SÓ para o Financeiro"
++    .setIssuer(ServerUrl.un(ISSUER))
++    .setAudience(ServerUrl.un(AUDIENCE_FINANCEIRO)) // DISS: "Este token é SÓ para o Financeiro"
+     .setExpirationTime('1h') // Token de acesso de curta duração
+     .setJti(crypto.randomUUID()) // ID único do token (para revogação/blacklist se necessário)
+     .sign(AUTH_SERVER_PRIVATE_KEY);
+@@ -35,11 +37,12 @@ async function generateAccessToken(userId: string, scopes: string[]) {
+ async function protectFinanceRoute(tokenRecebido: string) {
+   try {
++    const bearerToken = BearerToken.of(tokenRecebido);
+     const { payload } = await jwtVerify(tokenRecebido, API_PUBLIC_KEY, {
+-      issuer: ISSUER,               // Valida se veio do nosso Auth Server confiável
+-      audience: AUDIENCE_FINANCEIRO // Valida se o token foi feito PARA NÓS
++      issuer: ServerUrl.un(ISSUER),               // Valida se veio do nosso Auth Server confiável
++      audience: ServerUrl.un(AUDIENCE_FINANCEIRO) // Valida se o token foi feito PARA NÓS
+     });
+ 
+     // Se passou daqui, a assinatura é válida e a audiência está correta.
+     console.log(`✅ Acesso permitido ao usuário ${payload.sub}`);
+
+diff --git a/src/examples.mcps.ts b/src/examples.mcps.ts
+index 2345678..bcdefgh 100644
+--- a/src/examples.mcps.ts
++++ b/src/examples.mcps.ts
+@@ -1,5 +1,7 @@
+ import * as crypto from 'node:crypto';
+ import { SignJWT, jwtVerify, generateKeyPair } from './eddsa_jwt'; // Importando nossa lib
++import { ServerUrl } from '../domains/http/server/url';
++import { McpServerEndpoint } from '../domains/mcp/server/endpoint';
+ 
+ // --- Cenário: Setup Inicial ---
+ const { privateKey: AUTH_SERVER_PRIVATE_KEY, publicKey: API_PUBLIC_KEY } = generateKeyPair();
+@@ -7,16 +9,16 @@ const { privateKey: AUTH_SERVER_PRIVATE_KEY, publicKey: API_PUBLIC_KEY } = gener
+ const ISSUER = 'https://meu-auth-server.com';
+ 
+ // Audiences do nosso sistema
+-const AUDIENCE_FINANCEIRO = 'https://api.financeira.com';
++const AUDIENCE_FINANCEIRO = ServerUrl.make('https://api.financeira.com');
+ const MCP_ECOSYSTEM_AUD = 'urn:mcp:ecosystem'; // Audiência que representa TODOS os seus MCPs
+ 
+ // URLs específicas de alguns servidores MCP
+-const MCP_SERVER_ALPHA = 'https://mcp-alpha.internal';
+-const MCP_SERVER_BETA  = 'https://mcp-beta.internal';
+-const MCP_SERVER_GAMA  = 'https://mcp-gama.internal';
+-const MCP_SERVER_DELTA = 'https://mcp-delta.internal'; // Este ficará de fora do grupo
++const MCP_SERVER_ALPHA = McpServerEndpoint.make('https://mcp-alpha.internal');
++const MCP_SERVER_BETA  = McpServerEndpoint.make('https://mcp-beta.internal');
++const MCP_SERVER_GAMA  = McpServerEndpoint.make('https://mcp-gama.internal');
++const MCP_SERVER_DELTA = McpServerEndpoint.make('https://mcp-delta.internal'); // Este ficará de fora do grupo
+ 
+ // --- 1. O Authorization Server (Emissor) ---
+ // Agora aceita 'audience' dinâmico (pode ser string única ou array)
+-async function generateAccessToken(userId: string, scopes: string[], audience: string | string[]) {
++async function generateAccessToken(userId: string, scopes: string[], audience: string | string[] | ServerUrl | McpServerEndpoint) {
+
+diff --git a/readme.md b/readme.md
+index 3456789..cdefghi 100644
+--- a/readme.md
++++ b/readme.md
+@@ -244,6 +244,8 @@ app.use(express.json());
+ 
+ // Middleware de autenticação
++import { BearerToken } from './domains/auth/token/bearer';
++import { HttpStatusCode, HTTP_STATUS } from './domains/http/status/code';
+ async function authenticate(req: express.Request, res: express.Response, next: express.NextFunction) {
+   const authHeader = req.headers.authorization;
+   
+   if (!authHeader?.startsWith('Bearer ')) {
+-    return res.status(401).json({ error: 'Token não fornecido' });
++    return res.status(HttpStatusCode.un(HTTP_STATUS.UNAUTHORIZED)).json({ error: 'Token não fornecido' });
+   }
+   
+-  const token = authHeader.substring(7); // Remove "Bearer "
++  const bearerToken = BearerToken.fromAuthHeader(authHeader);
+   
+   try {
+-    const { payload } = await jwtVerify(token, publicKey, {
++    const { payload } = await jwtVerify(BearerToken.un(bearerToken), publicKey, {
+       issuer: 'urn:example:issuer',
+       audience: 'urn:example:audience'
+     });
+@@ -262,7 +264,7 @@ async function authenticate(req: express.Request, res: express.Response, next: e
+     req.user = payload;
+     next();
+   } catch (error) {
+-    return res.status(401).json({ error: 'Token inválido' });
++    return res.status(HttpStatusCode.un(HTTP_STATUS.UNAUTHORIZED)).json({ error: 'Token inválido' });
+   }
+ }

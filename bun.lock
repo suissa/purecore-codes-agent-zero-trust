@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "purecore-jwtfy",
+      "name": "purecore-codes-jwtfy",
       "dependencies": {
         "@types/node": "^25.0.2",
       },

@@ -1,20 +1,102 @@
 {
-  "name": "@purecore/one-jwt-4-all",
-  "version": "1.1.0",
-  "main": "index.js",
-  "dependencies": {
-    "@types/node": "^25.0.3",
-    "undici-types": "^7.16.0"
+  "name": "@vibe2founder/sentinel",
+  "version": "0.1.0",
+  "description": "Zero-Trust security architecture for autonomous AI agents. Implements tri-layered defense: mTLS, Signal Protocol E2EE, and DPoP authorization.",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./crypto": {
+      "types": "./dist/crypto/index.d.ts",
+      "import": "./dist/crypto/index.mjs",
+      "require": "./dist/crypto/index.js"
+    },
+    "./auth": {
+      "types": "./dist/auth/index.d.ts",
+      "import": "./dist/auth/index.mjs",
+      "require": "./dist/auth/index.js"
+    }
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "bun build src/index.ts --outdir dist --target node"
+    "build": "tsc && bun build src/index.ts --outdir dist --target node --format cjs && bun build src/index.ts --outdir dist --target node --format esm",
+    "build:watch": "tsc --watch",
+    "test": "bun test tests/**/*.test.ts",
+    "test:coverage": "bun test --coverage",
+    "lint": "eslint src/**/*.ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepublishOnly": "npm run build && npm run test",
+    "example:signal": "bun run examples/signal-e2ee-agents.ts",
+    "example:dpop": "bun run examples/dpop-example.ts",
+    "example:a2a": "bun run examples/a2a-ultra-secure.ts",
+    "example:secure": "bun run examples/secure-agents.ts",
+    "example:rabbitmq": "bun run examples/secure-agents-rabbitmq.ts",
+    "example:fapi": "bun run examples/fapi20-demo-working.ts",
+    "example:multiparty": "bun run examples/multiparty-e2ee-agents.ts"
   },
-  "keywords": [],
-  "author": "suissAI",
-  "license": "CEL",
-  "description": "One JWT FTW is a library for validating and verifying JSON Web Tokens (JWT) using always the newest and more secure native cryptographic algorithm.",
+  "keywords": [
+    "zero-trust",
+    "ai-agents",
+    "signal-protocol",
+    "e2ee",
+    "dpop",
+    "mtls",
+    "cryptography",
+    "double-ratchet",
+    "x3dh",
+    "agent-security",
+    "autonomous-agents",
+    "ai-security",
+    "rfc-9449",
+    "jwt",
+    "oauth2"
+  ],
+  "author": {
+    "name": "suissAI",
+    "email": "contact@purecore-codes.dev"
+  },
+  "contributors": [
+    "Agentic NetworkFortress Core Team"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/purecore-codes/agent-zero-trust.git"
+  },
+  "homepage": "https://purecore-codes.dev/agent-zero-trust",
+  "bugs": {
+    "url": "https://github.com/purecore-codes/agent-zero-trust/issues"
+  },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/bun": "^1.0.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
+  },
+  "peerDependencies": {},
+  "optionalDependencies": {
+    "zod": "^3.0.0",
+    "arktype": "^2.0.0"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -24,9 +24,9 @@ function ScrollToTop() {
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen overflow-hidden">
       <Sidebar />
-      <main className="flex-1 ml-64 p-8 md:p-12 lg:p-16 max-w-5xl">
+      <main className="flex-1 ml-64 p-8 md:p-12 lg:p-16 max-w-5xl overflow-y-auto">
         {children}
       </main>
     </div>

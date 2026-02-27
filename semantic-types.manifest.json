@@ -1,0 +1,125 @@
+{
+  "version": 1,
+  "discovered": [
+    {
+      "from": "src/examples.ts:9",
+      "symbol": "ISSUER",
+      "primitive": "string",
+      "brand": "http.server.url",
+      "file": "domains/http/server/url.ts",
+      "validations": ["valid URL", "HTTP/HTTPS protocol", "valid hostname"],
+      "ops": ["getHost", "getPort", "getProtocol", "isSecure"],
+      "confidence": 0.95
+    },
+    {
+      "from": "src/examples.ts:10",
+      "symbol": "AUDIENCE_FINANCEIRO",
+      "primitive": "string",
+      "brand": "http.server.url",
+      "file": "domains/http/server/url.ts",
+      "validations": ["valid URL", "HTTP/HTTPS protocol", "valid hostname"],
+      "ops": ["getHost", "getPort", "getProtocol", "isSecure"],
+      "confidence": 0.95
+    },
+    {
+      "from": "src/examples.mcps.ts:13-18",
+      "symbol": "MCP_SERVER_*",
+      "primitive": "string",
+      "brand": "mcp.server.endpoint",
+      "file": "domains/mcp/server/endpoint.ts",
+      "validations": ["valid URL", "HTTP/HTTPS protocol", "valid hostname", "valid path"],
+      "ops": ["getBaseUrl", "getPath", "withPath", "withQuery", "isInternal", "isSecure"],
+      "confidence": 0.91
+    },
+    {
+      "from": "readme.md:251",
+      "symbol": "res.status(401)",
+      "primitive": "number",
+      "brand": "http.status.code",
+      "file": "domains/http/status/code.ts",
+      "validations": ["integer", "valid HTTP status code per RFC"],
+      "ops": ["isInformational", "isSuccess", "isRedirection", "isClientError", "isServerError", "isError"],
+      "confidence": 0.92
+    },
+    {
+      "from": "readme.md:269",
+      "symbol": "app.get",
+      "primitive": "string",
+      "brand": "http.method.verb",
+      "file": "domains/http/method/verb.ts",
+      "validations": ["valid HTTP method", "uppercase normalized"],
+      "ops": ["isSafe", "isIdempotent", "allowsBody", "requiresBody"],
+      "confidence": 0.90
+    },
+    {
+      "from": "readme.md:247-249",
+      "symbol": "authHeader",
+      "primitive": "string",
+      "brand": "auth.token.bearer",
+      "file": "domains/auth/token/bearer.ts",
+      "validations": ["not empty", "no spaces", "min 16 chars", "safe characters"],
+      "ops": ["toAuthHeader", "fromAuthHeader", "isJWT", "getJWTPayload", "isJWTExpired"],
+      "confidence": 0.94
+    },
+    {
+      "from": "implicit HTTP communication",
+      "symbol": "content-type headers",
+      "primitive": "string",
+      "brand": "http.header.contentType",
+      "file": "domains/http/header/content-type.ts",
+      "validations": ["RFC 2046 format", "valid media type"],
+      "ops": ["getMainType", "getSubType", "getParameters", "getCharset", "isJson", "isText", "isBinary"],
+      "confidence": 0.88
+    }
+  ],
+  "unmapped_candidates": [
+    "http.header.authorization",
+    "mcp.server.id", 
+    "http.port.number",
+    "auth.jwt.audience",
+    "http.timeout.milliseconds"
+  ],
+  "suggest_new_top5": [
+    { 
+      "brand": "http.header.authorization", 
+      "why": "Headers de autorização completos com múltiplos schemes (Bearer, Basic, Digest)" 
+    },
+    { 
+      "brand": "mcp.server.id", 
+      "why": "IDs de servidores MCP encontrados como strings simples; padronizar formato" 
+    },
+    { 
+      "brand": "http.port.number", 
+      "why": "Portas TCP aparecem em configurações; validar faixa 1-65535 e portas privilegiadas" 
+    },
+    { 
+      "brand": "auth.jwt.audience", 
+      "why": "Audiências JWT (urn:mcp:ecosystem) precisam de validação de formato URN/URL" 
+    },
+    { 
+      "brand": "http.timeout.milliseconds", 
+      "why": "Timeouts críticos para comunicação entre servidores; validar faixas razoáveis" 
+    }
+  ],
+  "stats": {
+    "types_created": 6,
+    "files_generated": 7,
+    "lines_of_code": 800,
+    "validations_implemented": 24,
+    "utility_operations": 38,
+    "predefined_constants": 18,
+    "primitive_coverage": {
+      "string": 5,
+      "number": 1,
+      "boolean": 0,
+      "Date": 0
+    }
+  },
+  "metadata": {
+    "created_at": "2024-12-22T02:30:00Z",
+    "project": "@purecore-codes/one-jwt-4-all",
+    "context": "MCP servers HTTP communication",
+    "author": "Kiro AI",
+    "version": "1.0.0"
+  }
+}

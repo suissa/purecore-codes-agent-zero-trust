@@ -43,7 +43,7 @@ async function protectFinanceRoute(tokenRecebido: string) {
 
     // Se passou daqui, a assinatura é válida e a audiência está correta.
     console.log(`✅ Acesso permitido ao usuário ${payload.sub}`);
-    console.log(`Escopos permitidos: ${payload.scope}`);
+    console.log(`Escopos permitidos: ${payload['scope']}`);
     
     return true;
 

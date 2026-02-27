@@ -83,17 +83,20 @@ class CertificateAuthority {
   }
 
   private createSelfSignedCert(subject: string, publicKey: string, privateKey: string): string {
-    // Para produção, use uma biblioteca como node-forge ou openssl
-    // Aqui criamos um certificado básico usando Node.js crypto
-    const cert = crypto.createCertificate({
-      subject: subject,
-      publicKey: publicKey,
+    // Certificado simplificado para demonstração
+    // Em produção, use uma biblioteca como node-forge ou openssl
+    const certData = {
+      subject,
+      publicKey,
       serialNumber: crypto.randomBytes(16).toString('hex'),
-      notBefore: new Date(),
-      notAfter: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 ano
-    });
+      notBefore: new Date().toISOString(),
+      notAfter: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      issuer: 'CN=Agentic System CA'
+    };
 
-    return cert.toString();
+    // Simular certificado PEM (para demonstração)
+    const certBase64 = Buffer.from(JSON.stringify(certData)).toString('base64');
+    return `-----BEGIN CERTIFICATE-----\n${certBase64}\n-----END CERTIFICATE-----`;
   }
 
   private createSignedCert(subject: string, publicKey: string, privateKey: string): string {
