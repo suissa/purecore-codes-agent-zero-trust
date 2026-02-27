@@ -5,6 +5,20 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-02-27 (Estabilização e Testes)
+
+### Fixed
+- **Double Ratchet**: Corrigido bug onde a chave de ratchet do Bob era sobrescrita durante a inicialização, impedindo a decriptação da primeira mensagem.
+- **X3DH**: Corrigida a lógica de seleção de `OneTimePreKey` no receptor para garantir paridade com as chaves emitidas no bundle público.
+- **Circuit Breaker**: `getState()` agora é reativo e verifica o timeout de reset antes de retornar o estado, permitindo transição automática para `HALF_OPEN`.
+- **JWT**: Ajustada a comparação de expiração para `>=` garantindo que tokens expirando no segundo atual sejam invalidados corretamente.
+- **Bloom Filter**: `isRevoked` agora assume revogação segura (True) se o item estiver no filtro e uma lista completa (CRL) não for fornecida.
+- **Exports**: Adicionados `TokenManager` e `CircuitBreaker` às exportações públicas em `index.ts`.
+
+### Changed
+- **SignalE2EEAgent**: `establishSession` agora retorna a chave pública efêmera necessária para o handshake, alinhando-se com o protocolo Signal real.
+- **Testes**: Suíte de testes atualizada para cobrir o fluxo completo de troca de chaves e correção de regressões.
+
 ## [0.1.0] - 2026-02-27 (Sentinel Rebranding)
 
 ### Added

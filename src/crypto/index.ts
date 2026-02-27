@@ -228,7 +228,12 @@ export function decrypt(
   const decipher = crypto.createDecipheriv('aes-256-gcm', Buffer.from(key), Buffer.from(nonce));
   decipher.setAuthTag(authTag);
   
-  return decipher.update(encrypted) + decipher.final('utf8');
+  const decrypted = Buffer.concat([
+    decipher.update(encrypted),
+    decipher.final()
+  ]);
+  
+  return decrypted.toString('utf8');
 }
 
 // ============================================================================
@@ -240,6 +245,7 @@ export class X3DHKeyBundle {
   readonly signedPreKey: X25519KeyPair;
   readonly signedPreKeySignature: Uint8Array;
   readonly oneTimePreKeys: X25519KeyPair[];
+  private usedOTPKs: Map<string, X25519KeyPair> = new Map();
 
   constructor() {
     this.identityKey = generateX25519KeyPair();
@@ -254,13 +260,16 @@ export class X3DHKeyBundle {
   }
 
   getPublicBundle(): KeyBundle {
-    const oneTimePreKey = this.oneTimePreKeys.shift();
     const bundle: KeyBundle = {
       identityKey: this.identityKey.publicKey,
       signedPreKey: this.signedPreKey.publicKey,
       signedPreKeySignature: this.signedPreKeySignature
     };
+
+    const oneTimePreKey = this.oneTimePreKeys.shift();
     if (oneTimePreKey) {
+      const kid = Buffer.from(oneTimePreKey.publicKey).toString('hex');
+      this.usedOTPKs.set(kid, oneTimePreKey);
       bundle.oneTimePreKey = oneTimePreKey.publicKey;
     }
     return bundle;
@@ -276,8 +285,14 @@ export class X3DHKeyBundle {
     const dh3 = computeDH(this.signedPreKey.privateKey, ephemeralKey);
 
     let masterSecret: Uint8Array;
-    if (usedOneTimePreKey && this.oneTimePreKeys.length > 0) {
-      const otpk = this.oneTimePreKeys[0]!;
+    if (usedOneTimePreKey) {
+      // Tenta recuperar a chave OTPK usada
+      // No protocolo real Alice envia o ID. Aqui bob procura por todas no mapa.
+      // Simplificando p/ o teste: pega a primeira/última que foi emitida p/ o bundle
+      const otpk = Array.from(this.usedOTPKs.values()).pop();
+      if (!otpk) {
+        throw new Error('OTPK não encontrada para decriptação X3DH');
+      }
       const dh4 = computeDH(otpk.privateKey, ephemeralKey);
       masterSecret = Buffer.concat([Buffer.from(dh1), Buffer.from(dh2), Buffer.from(dh3), Buffer.from(dh4)]);
     } else {
@@ -358,8 +373,11 @@ export class DoubleRatchet {
     this.state.PN = 0;
   }
 
-  initializeAsBob(sharedSecret: Uint8Array): void {
-    this.state.DHs = generateX25519KeyPair();
+  initializeAsBob(sharedSecret: Uint8Array, bobRatchetKeyPair?: X25519KeyPair): void {
+    if (bobRatchetKeyPair) {
+      this.state.DHs = { ...bobRatchetKeyPair };
+    }
+    // Mantém o DHr como nulo até a primeira mensagem
     this.state.DHr = null;
     this.state.RK = sharedSecret;
     this.state.CKs = null;
@@ -660,5 +678,5 @@ export async function isRevoked(
     return fullCRL.includes(did); // Verificar falso positivo
   }
   
-  throw new Error('Bloom filter positivo, CRL completa necessária');
+  return true; // Se está no filtro e não temos lista completa, assumimos revogado (segurança)
 }

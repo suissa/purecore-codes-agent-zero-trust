@@ -102,6 +102,9 @@ export {
   // Server
   DPoPServer,
   
+  // Resiliência
+  TokenManager,
+  CircuitBreaker,
   CircuitOpenError,
 } from './auth';
 
@@ -235,7 +238,7 @@ export class SignalE2EEAgent extends EventEmitter {
     console.log(`📋 [${this.agentId}] Bundle de ${peerId} registrado`);
   }
 
-  async establishSession(peerId: string): Promise<void> {
+  async establishSession(peerId: string): Promise<Uint8Array> {
     const peerBundle = this.peerPublicBundles.get(peerId);
     if (!peerBundle) {
       throw new Error(`Bundle de ${peerId} não encontrado`);
@@ -255,6 +258,7 @@ export class SignalE2EEAgent extends EventEmitter {
 
     secureZero(ephemeralKey.privateKey);
     console.log(`🔗 [${this.agentId}] Sessão E2EE estabelecida com ${peerId}`);
+    return ephemeralKey.publicKey;
   }
 
   async acceptSession(
@@ -269,7 +273,7 @@ export class SignalE2EEAgent extends EventEmitter {
     );
 
     const ratchet = new DoubleRatchet();
-    ratchet.initializeAsBob(sharedSecret);
+    ratchet.initializeAsBob(sharedSecret, this.keyBundle.signedPreKey);
 
     this.sessions.set(peerId, ratchet);
     console.log(`🔗 [${this.agentId}] Sessão E2EE aceita de ${peerId}`);

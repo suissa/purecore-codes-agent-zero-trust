@@ -478,11 +478,11 @@ describe('SignalE2EEAgent', () => {
     bob.registerPeerBundle('alice', aliceBundle);
 
     // Estabelecer sessão
-    await alice.establishSession('bob');
+    const aliceEphemeralKey = await alice.establishSession('bob');
     await bob.acceptSession(
       'alice',
       alice.getIdentityPublicKey(),
-      aliceBundle.signedPreKey
+      aliceEphemeralKey
     );
 
     // Enviar mensagem

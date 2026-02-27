@@ -250,7 +250,7 @@ export async function jwtVerify(
     ? Math.floor(options.currentDate.getTime() / 1000)
     : Math.floor(Date.now() / 1000);
 
-  if (payload.exp && now > payload.exp) {
+  if (payload.exp && now >= payload.exp) {
     throw new Error(`Token expirado (exp). Expirou em ${new Date(payload.exp * 1000).toISOString()}`);
   }
 
@@ -792,6 +792,11 @@ export class CircuitBreaker {
   }
 
   getState(): CircuitState {
+    if (this.state === 'OPEN') {
+      if (Date.now() - this.lastFailureTime >= this.config.resetTimeout) {
+        this.state = 'HALF_OPEN';
+      }
+    }
     return this.state;
   }
 
