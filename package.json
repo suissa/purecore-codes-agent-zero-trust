@@ -34,7 +34,7 @@
     "bd": "bun run dev",
     "build": "tsc && bun build src/index.ts --outdir dist --target node --format cjs && bun build src/index.ts --outdir dist --target node --format esm",
     "build:watch": "tsc --watch",
-    "test": "bun test tests/**/*.test.ts",
+    "test": "bun test ./tests/",
     "test:coverage": "bun test --coverage",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write \"src/**/*.ts\"",
@@ -69,7 +69,7 @@
     "email": "hello@vibe2founder.com"
   },
   "contributors": [
-    "Agentic NetworkFortress Core Team"
+    "purecore Team"
   ],
   "license": "Apache-2.0",
   "repository": {
